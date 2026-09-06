@@ -15,6 +15,8 @@ import intelligenceRoutes from './routes/intelligence.js';
 import weatherRoutes from './routes/weather.js';
 import farmRoutes from './routes/farms.js';
 
+import { getWeatherProvider, getGeoProvider } from './providers/index.js';
+
 const log = createChildLogger('server');
 
 // ─── Fastify Instance ────────────────────────────────────────────────────────
@@ -135,20 +137,16 @@ app.get('/health/providers', {
   schema: {
     description: 'Provider health status',
     tags: ['System'],
-    response: {
-      200: {
-        type: 'object',
-        properties: {
-          database: { type: 'string' },
-          timestamp: { type: 'string' },
-        },
-      },
-    },
   },
   handler: async () => {
     const dbOk = await testDatabaseConnection();
+    const weatherProvider = getWeatherProvider();
+    const geoProvider = getGeoProvider();
+
     return {
       database: dbOk ? 'connected' : 'disconnected',
+      weather: weatherProvider.isAvailable() ? 'operational' : 'degraded',
+      geo: geoProvider.isAvailable() ? 'operational' : 'degraded',
       timestamp: new Date().toISOString(),
     };
   },
