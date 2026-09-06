@@ -123,9 +123,6 @@ export default async function authRoutes(app: FastifyInstance) {
   // ─── GET /v1/account/usage — Get Usage Stats ──────────────────────────
   app.get('/v1/account/usage', {
     preHandler: [authenticateApiKey],
-    schema: {
-      tags: ['Account'],
-    },
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const key = request.apiKey!;
 
