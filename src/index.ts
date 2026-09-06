@@ -5,8 +5,13 @@ import rateLimit from '@fastify/rate-limit';
 import { env } from './config/env.js';
 import { logger, createChildLogger } from './logger.js';
 import { testDatabaseConnection, closeDatabaseConnection } from './database/connection.js';
+import { closeRedis } from './cache/redis.js';
+import { errorHandler, notFoundHandler } from './middleware/errors.js';
+import { perKeyRateLimit } from './middleware/rateLimit.js';
 import authRoutes from './routes/auth.js';
 import intelligenceRoutes from './routes/intelligence.js';
+import weatherRoutes from './routes/weather.js';
+import farmRoutes from './routes/farms.js';
 
 const log = createChildLogger('server');
 
@@ -42,6 +47,12 @@ await app.register(rateLimit, {
 // ─── Register Routes ────────────────────────────────────────────────────────
 await app.register(authRoutes);
 await app.register(intelligenceRoutes);
+await app.register(weatherRoutes);
+await app.register(farmRoutes);
+
+// ─── Error Handlers ────────────────────────────────────────────────────────
+app.setErrorHandler(errorHandler);
+app.setNotFoundHandler(notFoundHandler);
 
 // ─── Health Endpoints ────────────────────────────────────────────────────────
 app.get('/health', {
