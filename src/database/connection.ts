@@ -9,7 +9,7 @@ const connectionString = env.database.url;
 const client = postgres(connectionString, {
   max: 20,
   idle_timeout: 20,
-  connect_timeout: 5,
+  connect_timeout: 2,
 });
 
 // Create the drizzle instance with schema
