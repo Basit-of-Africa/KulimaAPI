@@ -1,5 +1,5 @@
 import { db, providerStatus } from '../database/index.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { getWeatherProvider, getGeoProvider } from '../providers/index.js';
 import { createChildLogger } from '../logger.js';
 
@@ -69,7 +69,7 @@ export async function checkProviderHealth(): Promise<ProviderHealth[]> {
   };
 
   try {
-    await db`SELECT 1`;
+    await db.execute(sql`SELECT 1`);
   } catch (err: any) {
     dbHealth.status = 'down';
     dbHealth.lastError = err.message?.slice(0, 500);
