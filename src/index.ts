@@ -14,10 +14,17 @@ import authRoutes from './routes/auth.js';
 import intelligenceRoutes from './routes/intelligence.js';
 import weatherRoutes from './routes/weather.js';
 import farmRoutes from './routes/farms.js';
-
+import webhookRoutes from './routes/webhooks.js';
+import locationRoutes from './routes/locations.js';
 import { getWeatherProvider, getGeoProvider } from './providers/index.js';
+import { startHealthCheckCron, stopHealthCheckCron } from './cache/healthCheck.js';
+import { startWebhookProcessor, stopWebhookProcessor } from './webhooks/delivery.js';
 
 const log = createChildLogger('server');
+
+// Background service handles
+let healthCheckInterval: NodeJS.Timeout | null = null;
+let webhookInterval: NodeJS.Timeout | null = null;
 
 // ─── Fastify Instance ────────────────────────────────────────────────────────
 const app = Fastify({
@@ -103,6 +110,8 @@ await app.register(authRoutes);
 await app.register(intelligenceRoutes);
 await app.register(weatherRoutes);
 await app.register(farmRoutes);
+await app.register(webhookRoutes);
+await app.register(locationRoutes);
 
 // ─── Error Handlers ────────────────────────────────────────────────────────
 app.setErrorHandler(errorHandler);
@@ -169,6 +178,10 @@ async function start() {
     const dbConnected = await testDatabaseConnection();
     if (dbConnected) {
       log.info('✅ Database connected');
+
+      // Start background services
+      healthCheckInterval = startHealthCheckCron();
+      webhookInterval = startWebhookProcessor();
     } else {
       log.warn('⚠️  Database unavailable — running without persistence');
     }
@@ -176,6 +189,7 @@ async function start() {
     await app.listen({ port: env.port, host: env.host });
     log.info(`🚀 KulimaAPI running at http://${env.host}:${env.port}`);
     log.info(`📖 Environment: ${env.nodeEnv}`);
+    log.info(`📚 Swagger docs at http://${env.host}:${env.port}/docs`);
   } catch (err) {
     log.error(err, 'Failed to start server');
     process.exit(1);
@@ -185,6 +199,11 @@ async function start() {
 // ─── Graceful Shutdown ───────────────────────────────────────────────────────
 const shutdown = async (signal: string) => {
   log.info(`${signal} received — shutting down`);
+
+  // Stop background services
+  if (healthCheckInterval) stopHealthCheckCron(healthCheckInterval);
+  if (webhookInterval) stopWebhookProcessor(webhookInterval);
+
   await app.close();
   await closeRedis();
   await closeDatabaseConnection();
