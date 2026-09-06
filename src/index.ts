@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { env } from './config/env.js';
 import { logger, createChildLogger } from './logger.js';
 import { testDatabaseConnection, closeDatabaseConnection } from './database/connection.js';
@@ -42,6 +44,56 @@ await app.register(helmet);
 await app.register(rateLimit, {
   max: 100,
   timeWindow: '1 minute',
+});
+
+// ─── Swagger / OpenAPI ──────────────────────────────────────────────────────
+await app.register(swagger, {
+  openapi: {
+    openapi: '3.1.0',
+    info: {
+      title: 'KulimaAPI',
+      description:
+        'Agriculture Intelligence API for Nigerian Farmers.\n\n' +
+        'Turn raw environmental data into actionable agricultural decisions.\n' +
+        'Provides weather data, agricultural rules, risk assessments, and\n' +
+        'location-specific recommendations backed by evidence and confidence scores.',
+      version: '1.0.0',
+      contact: { name: 'KulimaAPI Support' },
+      license: { name: 'MIT' },
+    },
+    servers: [
+      { url: 'http://localhost:3000', description: 'Local development' },
+      { url: 'https://api.kulima.io', description: 'Production' },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'API Key',
+          description: 'Your KulimaAPI key. Format: kulima_xxxxxxxx',
+        },
+      },
+    },
+    tags: [
+      { name: 'System', description: 'Health checks and system status' },
+      { name: 'Auth', description: 'API key management' },
+      { name: 'Intelligence', description: 'Agricultural intelligence and recommendations' },
+      { name: 'Weather', description: 'Weather data and forecasts' },
+      { name: 'Location', description: 'Location resolution and geocoding' },
+      { name: 'Farms', description: 'Farm registration and management' },
+      { name: 'Account', description: 'Account and usage information' },
+    ],
+  },
+});
+
+await app.register(swaggerUi, {
+  routePrefix: '/docs',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: true,
+    filter: true,
+  },
 });
 
 // ─── Register Routes ────────────────────────────────────────────────────────

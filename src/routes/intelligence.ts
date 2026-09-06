@@ -1,7 +1,7 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getWeatherProvider, getGeoProvider } from '../providers/index.js';
-import { db, agriculturalRules, cropProfiles } from '../database/index.js';
-import { eq } from 'drizzle-orm';
+import { db, agriculturalRules, cropProfiles, farms } from '../database/index.js';
+import { eq, and } from 'drizzle-orm';
 import { authenticateApiKey, optionalAuth } from '../middleware/auth.js';
 import { trackUsage } from '../middleware/usage.js';
 import { evaluateRules } from '../intelligence/rulesEngine.js';
