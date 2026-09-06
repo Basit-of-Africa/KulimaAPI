@@ -5,6 +5,8 @@ import rateLimit from '@fastify/rate-limit';
 import { env } from './config/env.js';
 import { logger, createChildLogger } from './logger.js';
 import { testDatabaseConnection, closeDatabaseConnection } from './database/connection.js';
+import authRoutes from './routes/auth.js';
+import intelligenceRoutes from './routes/intelligence.js';
 
 const log = createChildLogger('server');
 
@@ -36,6 +38,10 @@ await app.register(rateLimit, {
   max: 100,
   timeWindow: '1 minute',
 });
+
+// ─── Register Routes ────────────────────────────────────────────────────────
+await app.register(authRoutes);
+await app.register(intelligenceRoutes);
 
 // ─── Health Endpoints ────────────────────────────────────────────────────────
 app.get('/health', {
