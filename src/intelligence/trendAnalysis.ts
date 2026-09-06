@@ -101,7 +101,7 @@ export function analyseTrend(data: TrendDataPoint[]): TrendResult {
   const variance = values.reduce((sum, v) => sum + (v - average) ** 2, 0) / n;
   const stdDev = Math.sqrt(variance);
   const lastValue = values[n - 1];
-  const anomaly = stdDev > 0 && Math.abs(lastValue - average) > 2 * stdDev;
+  const anomaly = stdDev > 0 && Math.abs(lastValue - average) >= 2 * stdDev;
 
   return {
     direction,
