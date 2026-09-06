@@ -134,7 +134,7 @@ export default function Overview() {
             </dd>
           </div>
           <div>
-            <dt className="text className="text-gray-500">Base URL</dt>
+            <dt className="text-gray-500">Base URL</dt>
             <dd className="font-mono text-xs text-gray-900">http://localhost:3000/v1</dd>
           </div>
           <div>
