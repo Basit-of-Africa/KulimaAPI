@@ -73,10 +73,11 @@ describe('Trend Analysis', () => {
         { date: '2026-06-02', value: 20 },
         { date: '2026-06-03', value: 20 },
         { date: '2026-06-04', value: 20 },
-        { date: '2026-06-05', value: 100 },
+        { date: '2026-06-05', value: 120 },
       ];
       const result = analyseTrend(data);
       expect(result.anomaly).toBe(true);
+      expect(result.anomalyDescription).toBeDefined();
     });
   });
 
