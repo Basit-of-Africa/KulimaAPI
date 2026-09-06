@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db, apiKeys, organisations } from '../database/index.js';
 import { eq, sql, and, gte } from 'drizzle-orm';
 import { createApiKey, revokeApiKey, rotateApiKey } from '../middleware/apiKeyManager.js';
@@ -124,10 +124,9 @@ export default async function authRoutes(app: FastifyInstance) {
   app.get('/v1/account/usage', {
     preHandler: [authenticateApiKey],
     schema: {
-      description: 'Get API usage statistics for the current key',
       tags: ['Account'],
     },
-    handler: async (request, reply) => {
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const key = request.apiKey!;
 
       // Get key details
@@ -147,15 +146,6 @@ export default async function authRoutes(app: FastifyInstance) {
       // Count usage this month
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      const [usageResult] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(apiKeys)
-        .where(
-          and(
-            eq(apiKeys.id, key.id)
-          )
-        );
 
       return {
         keyId: key.id,
