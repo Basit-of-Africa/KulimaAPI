@@ -1,12 +1,16 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Key, FlaskConical, BookOpen, Heart } from 'lucide-react';
+import { LayoutDashboard, Key, FlaskConical, BookOpen, Heart, MapPin, BarChart3, Sprout } from 'lucide-react';
 import Overview from './pages/Overview';
 import ApiKeys from './pages/ApiKeys';
 import Explorer from './pages/Explorer';
 import Docs from './pages/Docs';
+import FarmMap from './pages/FarmMap';
+import Analytics from './pages/Analytics';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Overview', icon: LayoutDashboard },
+  { path: '/farms', label: 'Farm Map', icon: MapPin },
+  { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/keys', label: 'API Keys', icon: Key },
   { path: '/explorer', label: 'API Explorer', icon: FlaskConical },
   { path: '/docs', label: 'Docs', icon: BookOpen },
@@ -56,6 +60,8 @@ export default function App() {
       <main className="flex-1 overflow-auto">
         <Routes>
           <Route path="/" element={<Overview />} />
+          <Route path="/farms" element={<FarmMap />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/keys" element={<ApiKeys />} />
           <Route path="/explorer" element={<Explorer />} />
           <Route path="/docs" element={<Docs />} />
