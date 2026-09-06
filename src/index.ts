@@ -16,6 +16,8 @@ import weatherRoutes from './routes/weather.js';
 import farmRoutes from './routes/farms.js';
 import webhookRoutes from './routes/webhooks.js';
 import locationRoutes from './routes/locations.js';
+import cropRoutes from './routes/crops.js';
+import satelliteRoutes from './routes/satellite.js';
 import { getWeatherProvider, getGeoProvider } from './providers/index.js';
 import { startHealthCheckCron, stopHealthCheckCron } from './cache/healthCheck.js';
 import { startWebhookProcessor, stopWebhookProcessor } from './webhooks/delivery.js';
@@ -112,6 +114,8 @@ await app.register(weatherRoutes);
 await app.register(farmRoutes);
 await app.register(webhookRoutes);
 await app.register(locationRoutes);
+await app.register(cropRoutes);
+await app.register(satelliteRoutes);
 
 // ─── Error Handlers ────────────────────────────────────────────────────────
 app.setErrorHandler(errorHandler);
