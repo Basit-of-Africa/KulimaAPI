@@ -143,10 +143,10 @@ describe('Confidence Calculation', () => {
 
     it('should return 0 for no variables', () => {
       const weather: CurrentWeather = {
-        temperatureC: 0,
-        humidityPercent: 0,
-        windSpeedKmh: 0,
-        precipitationMm: 0,
+        temperatureC: undefined as any,
+        humidityPercent: undefined as any,
+        windSpeedKmh: undefined as any,
+        precipitationMm: undefined as any,
         source: 'test',
         retrievedAt: new Date().toISOString(),
         validFrom: new Date().toISOString(),
@@ -160,6 +160,10 @@ describe('Confidence Calculation', () => {
         temperatureC: 30,
         humidityPercent: 75,
         windSpeedKmh: 12,
+        pressureHpa: undefined as any,
+        cloudCoverPercent: undefined as any,
+        soilMoisture: undefined as any,
+        soilTemperatureC: undefined as any,
         precipitationMm: 0,
         source: 'test',
         retrievedAt: new Date().toISOString(),

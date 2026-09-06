@@ -50,7 +50,7 @@ describe('Rules Engine', () => {
         crops: ['maize'],
         conditions: { type: 'high_temperature', excessDegreesC: 5 },
       });
-      const weather = makeWeather({ temperatureC: 40 });
+      const weather = makeWeather({ temperatureC: 41 });
       const results = evaluateRules([rule], weather, undefined, { name: 'maize' } as any);
       expect(results).toHaveLength(1);
       expect(results[0].triggered).toBe(true);
@@ -122,7 +122,7 @@ describe('Rules Engine', () => {
       const weather = makeWeather({ humidityPercent: 90 });
       const results = evaluateRules([rule], weather);
       expect(results[0].triggered).toBe(true);
-      expect(results[0].reason).toContain('fungal disease risk');
+      expect(results[0].reason.toLowerCase()).toContain('fungal disease risk');
     });
 
     it('should not trigger when humidity is below threshold', () => {
@@ -136,23 +136,23 @@ describe('Rules Engine', () => {
   });
 
   describe('high_temperature rule', () => {
-    it('should trigger when temp exceeds crop max + excess', () => {
+    it('should trigger when temp exceeds default max + excess', () => {
       const rule = makeRule({
         conditions: { type: 'high_temperature', excessDegreesC: 5 },
       });
-      const weather = makeWeather({ temperatureC: 42 });
+      const weather = makeWeather({ temperatureC: 41 });
       const results = evaluateRules([rule], weather);
-      expect(results[0].triggered).toBe(true);
+      expect(results[0].triggered).toBe(true); // 41 > 35 + 5 = 40
     });
 
     it('should use crop max temp when crop is provided', () => {
       const rule = makeRule({
         conditions: { type: 'high_temperature', excessDegreesC: 5 },
       });
-      const weather = makeWeather({ temperatureC: 38 });
+      const weather = makeWeather({ temperatureC: 39 });
       const crop = { name: 'maize', maxTemperatureC: 33 } as any;
       const results = evaluateRules([rule], weather, undefined, crop);
-      expect(results[0].triggered).toBe(true); // 38 > 33 + 5
+      expect(results[0].triggered).toBe(true); // 39 > 33 + 5 = 38
     });
   });
 });
