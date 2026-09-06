@@ -5,11 +5,12 @@ import * as schema from './schema.js';
 
 const connectionString = env.database.url;
 
-// Create the postgres.js client
+// Create the postgres.js client (lazy — won't connect until first query)
 const client = postgres(connectionString, {
   max: 20,
   idle_timeout: 20,
   connect_timeout: 10,
+  lazy: true,
 });
 
 // Create the drizzle instance with schema
