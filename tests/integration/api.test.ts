@@ -195,7 +195,7 @@ describe('Satellite & Soil Endpoints', () => {
     expect(result.organicCarbon).toBeDefined();
   });
 
-  it('GET /v2/soil/:lat/:lng/capability should return capability', async () => {
+  it('GET /v2/soil/:lat/:lng/capability should return capability', { timeout: 15000 }, async () => {
     try {
       const result = await api<any>('/v2/soil/9.0/7.5/capability');
       expect(result.suitability).toBeDefined();
@@ -203,7 +203,7 @@ describe('Satellite & Soil Endpoints', () => {
       expect(result.bestCrops.length).toBeGreaterThan(0);
     } catch (err: any) {
       // SoilGrids may timeout in some environments
-      expect(err.message).toMatch(/500|timeout/i);
+      expect(err.message).toMatch(/500|timeout|aborted/i);
     }
   });
 });
