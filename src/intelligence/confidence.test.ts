@@ -164,13 +164,13 @@ describe('Confidence Calculation', () => {
         cloudCoverPercent: undefined as any,
         soilMoisture: undefined as any,
         soilTemperatureC: undefined as any,
-        precipitationMm: 0,
+        precipitationMm: undefined as any,
         source: 'test',
         retrievedAt: new Date().toISOString(),
         validFrom: new Date().toISOString(),
         validUntil: new Date().toISOString(),
       };
-      // 3 non-zero variables / 6 expected = 0.5
+      // 3 non-null variables / 6 expected = 0.5
       expect(assessVariableCount(weather)).toBe(0.5);
     });
   });

@@ -51,7 +51,8 @@ describe('Rules Engine', () => {
         conditions: { type: 'high_temperature', excessDegreesC: 5 },
       });
       const weather = makeWeather({ temperatureC: 41 });
-      const results = evaluateRules([rule], weather, undefined, { name: 'maize' } as any);
+      const crop = { name: 'maize', maxTemperatureC: 33 } as any;
+      const results = evaluateRules([rule], weather, undefined, crop);
       expect(results).toHaveLength(1);
       expect(results[0].triggered).toBe(true);
     });
