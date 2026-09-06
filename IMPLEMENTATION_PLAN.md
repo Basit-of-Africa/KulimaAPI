@@ -273,20 +273,20 @@ This plan breaks the MVP (Phase 1) build into **8 work streams** executed across
 
 ## Definition of Done (MVP)
 
-- [ ] All Phase 1 endpoints functional and returning correct response structures
-- [ ] Open-Meteo integration working with graceful degradation
-- [ ] Nigerian location resolution working (text query + coordinates)
-- [ ] Agricultural rules engine producing evidence-backed recommendations
-- [ ] Confidence scores calculated and returned
-- [ ] API key authentication working
-- [ ] Rate limiting enforced per API key
-- [ ] Caching reducing external API calls
-- [ ] OpenAPI documentation complete and interactive
-- [ ] Usage metering tracking all requests
-- [ ] Error responses consistent and informative
-- [ ] Developer dashboard functional (overview, keys, explorer, docs)
-- [ ] All tests passing (unit + integration + API)
-- [ ] Deployable to at least one target platform
-- [ ] README with setup, deployment, and usage instructions
-- [ ] `.env.example` with all required variables
-- [ ] No secrets committed to repository
+- [x] All Phase 1 endpoints functional and returning correct response structures
+- [x] Open-Meteo integration working with graceful degradation
+- [x] Nigerian location resolution working (text query + coordinates)
+- [x] Agricultural rules engine producing evidence-backed recommendations
+- [x] Confidence scores calculated and returned
+- [x] API key authentication working
+- [x] Rate limiting enforced per API key
+- [x] Caching reducing external API calls
+- [x] OpenAPI documentation complete and interactive
+- [x] Usage metering tracking all requests
+- [x] Error responses consistent and informative
+- [x] Developer dashboard functional (overview, keys, explorer, docs)
+- [x] All tests passing (unit + integration + API)
+- [x] Deployable to at least one target platform
+- [x] README with setup, deployment, and usage instructions
+- [x] `.env.example` with all required variables
+- [x] No secrets committed to repository
