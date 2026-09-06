@@ -136,6 +136,7 @@ async function start() {
 const shutdown = async (signal: string) => {
   log.info(`${signal} received — shutting down`);
   await app.close();
+  await closeRedis();
   await closeDatabaseConnection();
   process.exit(0);
 };
