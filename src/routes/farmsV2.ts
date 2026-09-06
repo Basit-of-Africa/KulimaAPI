@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { db, farms } from '../database/index.js';
+import { db, farms, intelligenceResults } from '../database/index.js';
 import { eq, and, desc, count, sql } from 'drizzle-orm';
 import { authenticateApiKey } from '../middleware/auth.js';
 import { trackUsage } from '../middleware/usage.js';

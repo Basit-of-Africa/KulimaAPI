@@ -69,14 +69,20 @@ const cumulativeRainfallRule: AdvancedRule = {
     const rain7d = forecast.days.slice(0, 7).reduce((sum, d) => sum + d.precipitationMm, 0);
 
     // Thresholds vary by crop water sensitivity
-    const sensitivity = ctx.cropProfile?.waterSensitivity || 'moderate';
-    const thresholds = {
+    // Map crop growth profile name to water sensitivity
+    const cropWaterSensitivity: Record<string, string> = {
+      maize: 'high', rice: 'very_high', cassava: 'moderate',
+      sorghum: 'low', cowpea: 'moderate', groundnut: 'moderate', yam: 'high',
+    };
+    const sensitivity = (ctx.cropProfile ? cropWaterSensitivity[ctx.cropProfile.cropName] : null) || 'moderate';
+    const sensitivityThresholds: Record<string, { day3: number; day7: number }> = {
       very_low: { day3: 80, day7: 150 },
       low: { day3: 60, day7: 120 },
       moderate: { day3: 50, day7: 100 },
       high: { day3: 40, day7: 80 },
       very_high: { day3: 30, day7: 60 },
-    }[sensitivity] || { day3: 50, day7: 100 };
+    };
+    const thresholds = sensitivityThresholds[sensitivity] || { day3: 50, day7: 100 };
 
     if (rain3d > thresholds.day3 || rain7d > thresholds.day7) {
       const severity = rain7d > thresholds.day7 * 1.5 ? 'critical' :
