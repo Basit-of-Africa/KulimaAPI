@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getWeatherProvider, getGeoProvider } from '../providers/index.js';
-import { cache } from '../cache/CacheService.js';
+import { cache, CacheService } from '../cache/CacheService.js';
 import { env } from '../config/env.js';
 import { optionalAuth } from '../middleware/auth.js';
 import { trackUsage } from '../middleware/usage.js';
