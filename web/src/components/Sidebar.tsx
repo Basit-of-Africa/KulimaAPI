@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 const NAV = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/explorer', label: 'API Explorer', icon: FlaskConical },
   { href: '/farms', label: 'Farm Map', icon: Map },
   { href: '/crops', label: 'Crop Tools', icon: Wheat },
@@ -25,7 +25,7 @@ export function Sidebar() {
 
   const handleSignOut = () => {
     signOut();
-    router.push('/auth/signin');
+    router.push('/');
   };
 
   return (
