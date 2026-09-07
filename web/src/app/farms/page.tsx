@@ -1,4 +1,7 @@
-'use client';\r\n\r\nimport { withAuth } from '@/components/withAuth';\r\nimport { useState, useEffect } from 'react';
+'use client';
+
+import { withAuth } from '@/components/withAuth';
+import { useState, useEffect } from 'react';
 import { MapPin, Cloud, Thermometer, Droplets, Wind, Leaf, Search } from 'lucide-react';
 import { getBatchWeather, batchResolveLocations, getVegetationHealth, getSoilProfile } from '@/lib/api';
 import { cn, getNdviColor } from '@/lib/utils';

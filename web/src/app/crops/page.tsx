@@ -1,4 +1,7 @@
-'use client';\r\n\r\nimport { withAuth } from '@/components/withAuth';\r\nimport { useState, useEffect } from 'react';
+'use client';
+
+import { withAuth } from '@/components/withAuth';
+import { useState, useEffect } from 'react';
 import { Wheat, Calendar, TrendingUp, Sprout, Search, ChevronDown } from 'lucide-react';
 import { getCrops, getCrop, getCropPlantingWindow, getCropGrowthStage } from '@/lib/api';
 import { cn, getRiskColor } from '@/lib/utils';
