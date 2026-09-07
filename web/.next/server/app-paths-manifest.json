@@ -1,3 +1,4 @@
 {
+  "/crops/page": "app/crops/page.js",
   "/keys/page": "app/keys/page.js"
 }
