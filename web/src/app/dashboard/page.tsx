@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getStatus, getProviderHealth, getCrops, getStates } from '@/lib/api';
 import { formatNumber } from '@/lib/utils';
+import { withAuth } from '@/components/withAuth';
 import {
   Activity, Database, Cloud, Globe, Leaf, Satellite,
   ArrowUpRight, Sprout, MapPin, TrendingUp, Server,
