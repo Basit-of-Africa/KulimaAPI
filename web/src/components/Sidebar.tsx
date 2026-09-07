@@ -1,15 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth';
 import {
   LayoutDashboard, Map, Wheat, FlaskConical, Key,
-  BookOpen, Sprout, ChevronRight, Leaf
+  BookOpen, Sprout, ChevronRight, Leaf, LogOut, User
 } from 'lucide-react';
 
 const NAV = [
-  { href: '/landing', label: 'Home', icon: Leaf },
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/explorer', label: 'API Explorer', icon: FlaskConical },
   { href: '/farms', label: 'Farm Map', icon: Map },
@@ -20,6 +20,13 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = () => {
+    signOut();
+    router.push('/auth/signin');
+  };
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
@@ -59,13 +66,35 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <Leaf size={12} className="text-kulima-500" />
-          <span>Built for Nigerian agriculture</span>
+      {/* User & Footer */}
+      <div className="border-t border-gray-200 dark:border-gray-800">
+        {user && (
+          <div className="p-3">
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="w-8 h-8 rounded-full bg-kulima-100 dark:bg-kulima-900 flex items-center justify-center">
+                <User size={14} className="text-kulima-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</p>
+                <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                title="Sign out"
+              >
+                <LogOut size={14} className="text-gray-400" />
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="px-5 pb-3">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <Leaf size={12} className="text-kulima-500" />
+            <span>Built for Nigerian agriculture</span>
+          </div>
+          <div className="mt-1 text-[10px] text-gray-300 dark:text-gray-600">v2.0.0 • Phase 2</div>
         </div>
-        <div className="mt-2 text-[10px] text-gray-300 dark:text-gray-600">v2.0.0 • Phase 2</div>
       </div>
     </aside>
   );
