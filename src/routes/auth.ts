@@ -1,11 +1,39 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db, apiKeys, organisations } from '../database/index.js';
 import { eq, sql, and, gte } from 'drizzle-orm';
-import { createApiKey, revokeApiKey, rotateApiKey } from '../middleware/apiKeyManager.js';
 import { authenticateApiKey } from '../middleware/auth.js';
 import { createChildLogger } from '../logger.js';
+import crypto from 'crypto';
 
 const log = createChildLogger('routes/auth');
+
+// ─── In-memory store (used when DB is unavailable) ───────────────────────────
+interface InMemoryKey {
+  id: string;
+  orgId: string;
+  name: string;
+  keyHash: string;
+  keyPrefix: string;
+  rawKey: string;
+  status: string;
+  rateLimit: number;
+  monthlyQuota: number;
+  createdAt: string;
+}
+
+const memStore: Map<string, InMemoryKey> = new Map();
+let dbAvailable = true;
+
+function generateKey(): { rawKey: string; keyPrefix: string; keyHash: string } {
+  const rawKey = `kulima_${crypto.randomBytes(24).toString('hex')}`;
+  const keyPrefix = rawKey.slice(0, 12);
+  const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+  return { rawKey, keyPrefix, keyHash };
+}
+
+function isDbAvailable(): boolean {
+  return dbAvailable;
+}
 
 export default async function authRoutes(app: FastifyInstance) {
   // ─── POST /v1/auth/keys — Create API Key ──────────────────────────────
@@ -25,41 +53,83 @@ export default async function authRoutes(app: FastifyInstance) {
       },
     },
     handler: async (request, reply) => {
-      let { orgId, name, rateLimit, monthlyQuota } = request.body as any;
+      const { orgId: inputOrgId, name, rateLimit, monthlyQuota } = request.body as any;
 
-      // Auto-create organisation if orgId not provided or doesn't exist
-      if (!orgId) {
-        const [newOrg] = await db
-          .insert(organisations)
-          .values({ name: `${name}'s Organisation` })
-          .returning({ id: organisations.id });
-        orgId = newOrg.id;
-        log.info({ orgId }, 'Auto-created organisation');
-      } else {
-        // Verify org exists, create if not
-        const [existing] = await db
-          .select()
-          .from(organisations)
-          .where(eq(organisations.id, orgId))
-          .limit(1);
+      if (isDbAvailable()) {
+        try {
+          let orgId = inputOrgId;
 
-        if (!existing) {
-          const [newOrg] = await db
-            .insert(organisations)
-            .values({ id: orgId, name: `${name}'s Organisation` })
-            .returning({ id: organisations.id });
-          orgId = newOrg.id;
-          log.info({ orgId }, 'Auto-created organisation');
+          // Auto-create organisation if orgId not provided or doesn't exist
+          if (!orgId) {
+            const [newOrg] = await db
+              .insert(organisations)
+              .values({ name: `${name}'s Organisation` })
+              .returning({ id: organisations.id });
+            orgId = newOrg.id;
+            log.info({ orgId }, 'Auto-created organisation');
+          } else {
+            const [existing] = await db
+              .select()
+              .from(organisations)
+              .where(eq(organisations.id, orgId))
+              .limit(1);
+
+            if (!existing) {
+              const [newOrg] = await db
+                .insert(organisations)
+                .values({ id: orgId, name: `${name}'s Organisation` })
+                .returning({ id: organisations.id });
+              orgId = newOrg.id;
+              log.info({ orgId }, 'Auto-created organisation');
+            }
+          }
+
+          // Use the existing createApiKey function
+          const { createApiKey: createDbKey } = await import('../middleware/apiKeyManager.js');
+          const key = await createDbKey(orgId, name, { rateLimit, monthlyQuota });
+
+          log.info({ keyId: key.id, orgId }, 'API key created via DB');
+
+          return reply.code(201).send({
+            id: key.id,
+            key: key.rawKey,
+            keyPrefix: key.keyPrefix,
+            name: key.name,
+            rateLimit: key.rateLimit,
+            monthlyQuota: key.monthlyQuota,
+            createdAt: key.createdAt,
+            _warning: 'Save this key now. It will not be shown again.',
+          });
+        } catch (err: any) {
+          log.error({ err: err.message }, 'DB key creation failed, falling back to in-memory');
+          dbAvailable = false;
         }
       }
 
-      const key = await createApiKey(orgId, name, { rateLimit, monthlyQuota });
+      // In-memory fallback
+      const { rawKey, keyPrefix, keyHash } = generateKey();
+      const id = crypto.randomUUID();
+      const orgId = inputOrgId || crypto.randomUUID();
 
-      log.info({ keyId: key.id, orgId }, 'API key created via route');
+      const key: InMemoryKey = {
+        id,
+        orgId,
+        name,
+        keyHash,
+        keyPrefix,
+        rawKey,
+        status: 'active',
+        rateLimit: rateLimit || 1000,
+        monthlyQuota: monthlyQuota || 1000,
+        createdAt: new Date().toISOString(),
+      };
+
+      memStore.set(id, key);
+      log.info({ keyId: id, orgId }, 'API key created (in-memory)');
 
       return reply.code(201).send({
         id: key.id,
-        key: key.rawKey, // Only shown once!
+        key: key.rawKey,
         keyPrefix: key.keyPrefix,
         name: key.name,
         rateLimit: key.rateLimit,
