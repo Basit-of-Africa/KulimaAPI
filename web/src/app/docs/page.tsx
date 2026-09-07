@@ -1,3 +1,4 @@
+import { withAuth } from '@/components/withAuth';
 'use client';
 
 import { BookOpen, ExternalLink, Code, Zap, Shield, Map, Wheat, Cloud, Satellite } from 'lucide-react';

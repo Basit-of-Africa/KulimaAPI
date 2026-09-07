@@ -1,3 +1,4 @@
+import { withAuth } from '@/components/withAuth';
 'use client';
 
 import { useState, useEffect } from 'react';
