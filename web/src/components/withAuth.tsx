@@ -4,8 +4,8 @@ import { ComponentType } from 'react';
 import { AuthGuard } from './AuthGuard';
 import { Sidebar } from './Sidebar';
 
-export function withAuth<T>(WrappedComponent: ComponentType<T>) {
-  return function AuthenticatedComponent(props: T) {
+export function withAuth<P extends object>(WrappedComponent: ComponentType<P>) {
+  return function AuthenticatedComponent(props: P) {
     return (
       <AuthGuard>
         <div className="flex min-h-screen">
