@@ -18,7 +18,7 @@ const CROP_COLORS: Record<string, string> = {
   sorghum: '#CD853F', cowpea: '#98FB98', groundnut: '#F5DEB3',
 };
 
-function () {
+function Page() {
   const [farms] = useState(SAMPLE_FARMS);
   const [selected, setSelected] = useState<any>(null);
   const [weather, setWeather] = useState<Record<string, any>>({});
@@ -205,4 +205,4 @@ function WeatherStat({ icon: Icon, label, value, color }: { icon: any; label: st
 }
 
 
-export default withAuth();
+export default withAuth(Page);

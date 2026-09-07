@@ -49,7 +49,7 @@ const STEPS = [
   },
 ];
 
-function () {
+function Page() {
   const [currentStep, setCurrentStep] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -148,4 +148,4 @@ function () {
 }
 
 
-export default withAuth();
+export default withAuth(Page);

@@ -21,7 +21,7 @@ const ENDPOINTS = [
   { method: 'POST', path: '/v2/location/batch', desc: 'Batch locations', params: [], query: [] },
 ];
 
-function () {
+function Page() {
   const [selected, setSelected] = useState(0);
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
   const [queryValues, setQueryValues] = useState<Record<string, string>>({});
@@ -193,4 +193,4 @@ function () {
 }
 
 
-export default withAuth();
+export default withAuth(Page);
