@@ -15,9 +15,9 @@ export default async function authRoutes(app: FastifyInstance) {
       tags: ['Auth'],
       body: {
         type: 'object',
-        required: ['orgId', 'name'],
+        required: ['name'],
         properties: {
-          orgId: { type: 'string', format: 'uuid' },
+          orgId: { type: 'string', description: 'Organisation UUID. Auto-created if not found.' },
           name: { type: 'string' },
           rateLimit: { type: 'integer' },
           monthlyQuota: { type: 'integer' },
@@ -25,20 +25,32 @@ export default async function authRoutes(app: FastifyInstance) {
       },
     },
     handler: async (request, reply) => {
-      const { orgId, name, rateLimit, monthlyQuota } = request.body as any;
+      let { orgId, name, rateLimit, monthlyQuota } = request.body as any;
 
-      // Verify org exists
-      const [org] = await db
-        .select()
-        .from(organisations)
-        .where(eq(organisations.id, orgId))
-        .limit(1);
+      // Auto-create organisation if orgId not provided or doesn't exist
+      if (!orgId) {
+        const [newOrg] = await db
+          .insert(organisations)
+          .values({ name: `${name}'s Organisation` })
+          .returning({ id: organisations.id });
+        orgId = newOrg.id;
+        log.info({ orgId }, 'Auto-created organisation');
+      } else {
+        // Verify org exists, create if not
+        const [existing] = await db
+          .select()
+          .from(organisations)
+          .where(eq(organisations.id, orgId))
+          .limit(1);
 
-      if (!org) {
-        return reply.code(404).send({
-          error: 'Not Found',
-          message: `Organisation ${orgId} not found.`,
-        });
+        if (!existing) {
+          const [newOrg] = await db
+            .insert(organisations)
+            .values({ id: orgId, name: `${name}'s Organisation` })
+            .returning({ id: organisations.id });
+          orgId = newOrg.id;
+          log.info({ orgId }, 'Auto-created organisation');
+        }
       }
 
       const key = await createApiKey(orgId, name, { rateLimit, monthlyQuota });
