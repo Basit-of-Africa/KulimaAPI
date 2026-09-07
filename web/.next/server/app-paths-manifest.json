@@ -1,8 +1,1 @@
-{
-  "/page": "app/page.js",
-  "/explorer/page": "app/explorer/page.js",
-  "/keys/page": "app/keys/page.js",
-  "/crops/page": "app/crops/page.js",
-  "/docs/page": "app/docs/page.js",
-  "/farms/page": "app/farms/page.js"
-}
+{}
