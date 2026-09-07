@@ -1,19 +1,27 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth/signin');
     }
   }, [user, loading, router]);
+
+  // Redirect / to /dashboard
+  useEffect(() => {
+    if (pathname === '/') {
+      router.replace('/dashboard');
+    }
+  }, [pathname, router]);
 
   if (loading) {
     return (
