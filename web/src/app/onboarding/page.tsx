@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { CheckCircle, ArrowRight, Key, Zap, Code, Map, Wheat, Rocket, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { withAuth } from '@/components/withAuth';
 
 const STEPS = [
   {

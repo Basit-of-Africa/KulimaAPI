@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Play, Copy, Check, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { withAuth } from '@/components/withAuth';
 
 const ENDPOINTS = [
   { method: 'GET', path: '/v1/weather/current/{lat}/{lng}', desc: 'Current weather', params: ['lat', 'lng'], query: [] },

@@ -1,4 +1,4 @@
 {
-  "/landing/page": "app/landing/page.js",
-  "/auth/signin/page": "app/auth/signin/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/landing/page": "app/landing/page.js"
 }
