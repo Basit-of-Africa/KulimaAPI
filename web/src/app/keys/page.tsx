@@ -15,17 +15,18 @@ function Page() {
   const [copied, setCopied] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!orgId || !name) { setError('Organisation ID and name are required.'); return; }
+    if (!name) { setError('Key name is required.'); return; }
     setLoading(true);
     setError(null);
     try {
       const newKey = await api<any>('/v1/auth/keys', {
         method: 'POST',
-        body: JSON.stringify({ orgId, name }),
+        body: JSON.stringify({ orgId: orgId || undefined, name }),
       });
       setKeys(prev => [newKey, ...prev]);
       setShowKey(newKey.key || null);
       setName('');
+      setOrgId('');
     } catch (err: any) {
       setError(err.message);
     } finally {
