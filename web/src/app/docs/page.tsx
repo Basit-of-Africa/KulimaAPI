@@ -1,4 +1,7 @@
-'use client';\r\n\r\nimport { withAuth } from '@/components/withAuth';\r\nimport { BookOpen, ExternalLink, Code, Zap, Shield, Map, Wheat, Cloud, Satellite } from 'lucide-react';
+'use client';
+
+import { withAuth } from '@/components/withAuth';
+import { BookOpen, ExternalLink, Code, Zap, Shield, Map, Wheat, Cloud, Satellite } from 'lucide-react';
 
 function Page() {
   return (
