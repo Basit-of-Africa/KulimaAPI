@@ -2,7 +2,7 @@
 
 > **Turn raw environmental data into actionable agricultural decisions.**
 
-KulimaAPI is a production-ready **Agriculture Intelligence API** focused on Nigerian agriculture. It converts raw weather, geographic, and agricultural data into practical, location-specific insights for farmers, agricultural platforms, NGOs, agribusinesses, lenders, insurers, researchers, and government programmes.
+KulimaAPI is an **Agriculture Intelligence API** focused on Nigerian agriculture. It converts raw weather, geographic, and agricultural data into practical, location-specific insights for farmers, agricultural platforms, NGOs, agribusinesses, lenders, insurers, researchers, and government programmes.
 
 ---
 
