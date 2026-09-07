@@ -36,10 +36,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/docs/page.js"
     ],
-    "/_not-found/page": [
+    "/keys/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/keys/page.js"
     ]
   }
 }
