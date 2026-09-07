@@ -10,7 +10,7 @@ import {
   Zap, Shield
 } from 'lucide-react';
 
-function () {
+function Dashboard() {
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
