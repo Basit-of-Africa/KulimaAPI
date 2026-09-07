@@ -225,4 +225,6 @@ function ZoneCard({ name, desc, color, crops }: {
   );
 }
 
+export default withAuth(Dashboard);
+
 
