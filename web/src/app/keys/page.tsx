@@ -1,7 +1,4 @@
-import { withAuth } from '@/components/withAuth';
-'use client';
-
-import { useState } from 'react';
+'use client';\r\n\r\nimport { withAuth } from '@/components/withAuth';\r\nimport { useState } from 'react';
 import { Key, Plus, Copy, Check, AlertTriangle, Shield } from 'lucide-react';
 import { api } from '@/lib/api';
 

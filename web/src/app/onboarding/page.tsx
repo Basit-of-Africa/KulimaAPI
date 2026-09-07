@@ -1,7 +1,4 @@
-import { withAuth } from '@/components/withAuth';
-'use client';
-
-import { useState } from 'react';
+'use client';\r\n\r\nimport { withAuth } from '@/components/withAuth';\r\nimport { useState } from 'react';
 import { CheckCircle, ArrowRight, Key, Zap, Code, Map, Wheat, Rocket, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
