@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 const NAV = [
+  { href: '/landing', label: 'Home', icon: Leaf },
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/explorer', label: 'API Explorer', icon: FlaskConical },
   { href: '/farms', label: 'Farm Map', icon: Map },
