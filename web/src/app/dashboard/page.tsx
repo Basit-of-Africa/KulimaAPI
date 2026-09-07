@@ -9,7 +9,7 @@ import {
   Zap, Shield
 } from 'lucide-react';
 
-export default function Dashboard() {
+function () {
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -223,3 +223,6 @@ function ZoneCard({ name, desc, color, crops }: {
     </div>
   );
 }
+
+
+export default withAuth();

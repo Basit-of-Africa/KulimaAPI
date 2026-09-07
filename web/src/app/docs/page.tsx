@@ -2,7 +2,7 @@
 
 import { BookOpen, ExternalLink, Code, Zap, Shield, Map, Wheat, Cloud, Satellite } from 'lucide-react';
 
-export default function DocsPage() {
+function () {
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto">
       <div className="mb-8">
@@ -148,3 +148,6 @@ function CodeBlock({ code }: { code: string }) {
     </pre>
   );
 }
+
+
+export default withAuth();

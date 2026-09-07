@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Play, Copy, Check, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { withAuth } from '@/components/withAuth';
 
 const ENDPOINTS = [
   { method: 'GET', path: '/v1/weather/current/{lat}/{lng}', desc: 'Current weather', params: ['lat', 'lng'], query: [] },
@@ -21,7 +22,7 @@ const ENDPOINTS = [
   { method: 'POST', path: '/v2/location/batch', desc: 'Batch locations', params: [], query: [] },
 ];
 
-export default function ExplorerPage() {
+function () {
   const [selected, setSelected] = useState(0);
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
   const [queryValues, setQueryValues] = useState<Record<string, string>>({});
@@ -191,3 +192,6 @@ export default function ExplorerPage() {
     </div>
   );
 }
+
+
+export default withAuth();

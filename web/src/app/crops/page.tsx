@@ -5,7 +5,7 @@ import { Wheat, Calendar, TrendingUp, Sprout, Search, ChevronDown } from 'lucide
 import { getCrops, getCrop, getCropPlantingWindow, getCropGrowthStage } from '@/lib/api';
 import { cn, getRiskColor } from '@/lib/utils';
 
-export default function CropsPage() {
+function () {
   const [crops, setCrops] = useState<any[]>([]);
   const [selectedCrop, setSelectedCrop] = useState<string>('maize');
   const [cropDetail, setCropDetail] = useState<any>(null);
@@ -159,3 +159,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+
+export default withAuth();

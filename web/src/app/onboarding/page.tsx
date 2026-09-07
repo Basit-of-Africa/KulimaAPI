@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CheckCircle, ArrowRight, Key, Zap, Code, Map, Wheat, Rocket, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { withAuth } from '@/components/withAuth';
 
 const STEPS = [
   {
@@ -49,7 +50,7 @@ const STEPS = [
   },
 ];
 
-export default function OnboardingPage() {
+function () {
   const [currentStep, setCurrentStep] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -146,3 +147,6 @@ export default function OnboardingPage() {
     </div>
   );
 }
+
+
+export default withAuth();

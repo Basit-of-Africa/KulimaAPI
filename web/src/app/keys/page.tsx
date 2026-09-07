@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Key, Plus, Copy, Check, AlertTriangle, Shield } from 'lucide-react';
 import { api } from '@/lib/api';
 
-export default function KeysPage() {
+function () {
   const [keys, setKeys] = useState<any[]>([]);
   const [orgId, setOrgId] = useState('');
   const [name, setName] = useState('');
@@ -126,3 +126,6 @@ export default function KeysPage() {
     </div>
   );
 }
+
+
+export default withAuth();
