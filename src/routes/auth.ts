@@ -115,7 +115,7 @@ export default async function authRoutes(app: FastifyInstance) {
 
       return reply.code(201).send({
         id: key.id,
-        key: key.rawKey,
+        key: rawKey,
         keyPrefix: key.keyPrefix,
         name: key.name,
         rateLimit: key.rateLimit,
