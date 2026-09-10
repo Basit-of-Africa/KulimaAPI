@@ -517,7 +517,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
       const energyBudget = calculateEnergyBudget(env, outdoorWeather);
 
       // Yield forecast
-      const yieldForecast = predictYield(env, latestReading as CEAReading | undefined);
+      const yieldForecast = predictYield(env as unknown as EnvironmentProfile, latestReading as unknown as CEAReading | undefined);
 
       // Build alerts from triggered rules
       const alerts = riskScore.triggeredRules
@@ -594,7 +594,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
       );
 
       const latestReading = latestReadings[0] || undefined;
-      const { setpoints, rationale } = generateControlSetpoints(env, latestReading as CEAReading | undefined);
+      const { setpoints, rationale } = generateControlSetpoints(env as unknown as EnvironmentProfile, latestReading as unknown as CEAReading | undefined);
 
       const cropName = env.crops?.[0]?.cropName || 'tomato';
       const growthStage = env.crops?.[0]?.growthStage || 'vegetative';
@@ -665,7 +665,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
         [],
       );
 
-      const forecast = predictYield(env, latestReadings[0] as CEAReading | undefined);
+      const forecast = predictYield(env as unknown as EnvironmentProfile, latestReadings[0] as unknown as CEAReading | undefined);
 
       if (!forecast) {
         return reply.code(404).send({
@@ -707,8 +707,8 @@ export default async function environmentRoutes(app: FastifyInstance) {
           );
 
           const ruleCtx: CEARuleContext = {
-            environment: env as EnvironmentProfile,
-            latestReading: latestReadings[0] as CEAReading | undefined,
+            environment: env as unknown as EnvironmentProfile,
+            latestReading: latestReadings[0] as unknown as CEAReading | undefined,
             previousReadings: [],
             energyRateNGNPerKWh: ENERGY_RATES.gridBandA,
           };
