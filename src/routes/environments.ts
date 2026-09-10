@@ -765,7 +765,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
       await tryDb(
         () => db.insert(controlActions).values(logEntry).returning(),
-        logEntry,
+        [logEntry],
       );
 
       return reply.code(201).send(logEntry);
@@ -852,7 +852,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
       await tryDb(
         () => db.insert(nutrientSchedules).values(schedule).returning(),
-        schedule,
+        [schedule],
       );
 
       return reply.code(201).send(schedule);
