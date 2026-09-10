@@ -500,9 +500,9 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
       // Build CEA rule context
       const ruleCtx: CEARuleContext = {
-        environment: env as EnvironmentProfile,
-        latestReading: latestReading as CEAReading | undefined,
-        previousReadings: previousReadings as CEAReading[],
+        environment: env as unknown as EnvironmentProfile,
+        latestReading: latestReading as unknown as CEAReading,
+        previousReadings: previousReadings as unknown as CEAReading[],
         outdoorWeather,
         energyRateNGNPerKWh: ENERGY_RATES.gridBandA,
       };
@@ -511,7 +511,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
       const riskScore = evaluateCEARules(ruleCtx);
 
       // Generate setpoints
-      const { setpoints, rationale } = generateControlSetpoints(env, latestReading as CEAReading | undefined);
+      const { setpoints, rationale } = generateControlSetpoints(env as unknown as EnvironmentProfile, latestReading as unknown as CEAReading);
 
       // Energy budget
       const energyBudget = calculateEnergyBudget(env, outdoorWeather);
