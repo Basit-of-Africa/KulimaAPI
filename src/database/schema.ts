@@ -315,3 +315,160 @@ export const providerStatus = pgTable('provider_status', {
   lastError: text('last_error'),
   metadata: jsonb('metadata'),
 });
+
+// =============================================================================
+// CEA — Controlled Environment Agriculture
+// =============================================================================
+
+// ─── CEA Environments ─────────────────────────────────────────────────────
+
+export const environments = pgTable(
+  'environments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .references(() => organisations.id, { onDelete: 'cascade' })
+      .notNull(),
+    farmId: uuid('farm_id').references(() => farms.id, { onDelete: 'set null' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    type: varchar('type', { length: 50 }).notNull(),
+    latitude: real('latitude').notNull(),
+    longitude: real('longitude').notNull(),
+    altitude: real('altitude'),
+    infrastructure: jsonb('infrastructure').notNull(),
+    sensors: jsonb('sensors').notNull(),
+    status: varchar('status', { length: 20 }).default('active').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('environments_org_id_idx').on(table.orgId),
+    index('environments_farm_id_idx').on(table.farmId),
+    index('environments_type_idx').on(table.type),
+  ]
+);
+
+// ─── CEA Environment Crops ────────────────────────────────────────────────
+
+export const environmentCrops = pgTable(
+  'environment_crops',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    environmentId: uuid('environment_id')
+      .references(() => environments.id, { onDelete: 'cascade' })
+      .notNull(),
+    cropName: varchar('crop_name', { length: 100 }).notNull(),
+    variety: varchar('variety', { length: 100 }),
+    plantingDate: timestamp('planting_date', { withTimezone: true }).notNull(),
+    areaM2: real('area_m2').notNull(),
+    density: real('density').notNull(),
+    growthStage: varchar('growth_stage', { length: 50 }),
+    substrate: varchar('substrate', { length: 50 }),
+    nutrientRecipe: varchar('nutrient_recipe', { length: 100 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('environment_crops_env_id_idx').on(table.environmentId),
+  ]
+);
+
+// ─── CEA Environment Readings (Time-Series) ───────────────────────────────
+
+export const environmentReadings = pgTable(
+  'environment_readings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    environmentId: uuid('environment_id')
+      .references(() => environments.id, { onDelete: 'cascade' })
+      .notNull(),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull(),
+    indoorTemperatureC: real('indoor_temperature_c'),
+    indoorHumidityPercent: real('indoor_humidity_percent'),
+    indoorCO2Ppm: real('indoor_co2_ppm'),
+    indoorLightLux: real('indoor_light_lux'),
+    rootZoneTemperatureC: real('root_zone_temperature_c'),
+    soilMoisturePercent: real('soil_moisture_percent'),
+    waterTemperatureC: real('water_temperature_c'),
+    waterPH: real('water_ph'),
+    waterEC: real('water_ec'),
+    outdoorTemperatureC: real('outdoor_temperature_c'),
+    outdoorHumidityPercent: real('outdoor_humidity_percent'),
+    outdoorWindSpeedKmh: real('outdoor_wind_speed_kmh'),
+    powerConsumptionKWh: real('power_consumption_kwh'),
+    source: varchar('source', { length: 20 }).default('sensor').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('env_readings_env_time_idx').on(table.environmentId, table.timestamp),
+  ]
+);
+
+// ─── CEA Control Actions Log ──────────────────────────────────────────────
+
+export const controlActions = pgTable(
+  'control_actions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    environmentId: uuid('environment_id')
+      .references(() => environments.id, { onDelete: 'cascade' })
+      .notNull(),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull(),
+    controlType: varchar('control_type', { length: 50 }).notNull(),
+    action: text('action').notNull(),
+    beforeState: jsonb('before_state'),
+    afterState: jsonb('after_state'),
+    triggeredBy: varchar('triggered_by', { length: 20 }).notNull(),
+    recommendationId: varchar('recommendation_id', { length: 100 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('control_actions_env_id_idx').on(table.environmentId),
+    index('control_actions_timestamp_idx').on(table.timestamp),
+  ]
+);
+
+// ─── CEA Nutrient Schedules ───────────────────────────────────────────────
+
+export const nutrientSchedules = pgTable(
+  'nutrient_schedules',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    environmentId: uuid('environment_id')
+      .references(() => environments.id, { onDelete: 'cascade' })
+      .notNull(),
+    cropName: varchar('crop_name', { length: 100 }).notNull(),
+    growthStage: varchar('growth_stage', { length: 50 }),
+    solution: jsonb('solution').notNull(),
+    irrigationSchedule: jsonb('irrigation_schedule').notNull(),
+    validFrom: timestamp('valid_from', { withTimezone: true }),
+    validUntil: timestamp('valid_until', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('nutrient_schedules_env_id_idx').on(table.environmentId),
+  ]
+);
+
+// ─── CEA Energy Log ──────────────────────────────────────────────────────
+
+export const energyLog = pgTable(
+  'energy_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    environmentId: uuid('environment_id')
+      .references(() => environments.id, { onDelete: 'cascade' })
+      .notNull(),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull(),
+    deviceType: varchar('device_type', { length: 50 }).notNull(),
+    powerKW: real('power_kw'),
+    durationMinutes: real('duration_minutes'),
+    kwh: real('kwh').notNull(),
+    costNGN: real('cost_ngn'),
+    source: varchar('source', { length: 20 }).default('meter').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('energy_log_env_id_idx').on(table.environmentId),
+    index('energy_log_timestamp_idx').on(table.timestamp),
+  ]
+);

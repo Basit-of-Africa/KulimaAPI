@@ -20,6 +20,7 @@ import cropRoutes from './routes/crops.js';
 import satelliteRoutes from './routes/satellite.js';
 import farmsV2Routes from './routes/farmsV2.js';
 import platformRoutes from './routes/platform.js';
+import environmentRoutes from './routes/environments.js';
 import { getWeatherProvider, getGeoProvider } from './providers/index.js';
 import { startHealthCheckCron, stopHealthCheckCron } from './cache/healthCheck.js';
 import { startWebhookProcessor, stopWebhookProcessor } from './webhooks/delivery.js';
@@ -120,6 +121,7 @@ await app.register(cropRoutes);
 await app.register(satelliteRoutes);
 await app.register(farmsV2Routes);
 await app.register(platformRoutes);
+await app.register(environmentRoutes);
 
 // ─── Error Handlers ────────────────────────────────────────────────────────
 app.setErrorHandler(errorHandler);
