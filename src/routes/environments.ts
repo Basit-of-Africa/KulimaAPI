@@ -763,12 +763,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
         recommendationId: body.recommendationId || null,
       };
 
-      await tryDb(
+      const dbResult = await tryDb(
         () => db.insert(controlActions).values(logEntry).returning(),
-        [logEntry],
+        [logEntry] as any,
       );
 
-      return reply.code(201).send(logEntry);
+      return reply.code(201).send(dbResult[0] || logEntry);
     },
   });
 
@@ -850,12 +850,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
         validUntil: body.validUntil || null,
       };
 
-      await tryDb(
+      const dbResult = await tryDb(
         () => db.insert(nutrientSchedules).values(schedule).returning(),
-        [schedule],
+        [schedule] as any,
       );
 
-      return reply.code(201).send(schedule);
+      return reply.code(201).send(dbResult[0] || schedule);
     },
   });
 
