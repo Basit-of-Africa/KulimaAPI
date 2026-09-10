@@ -154,6 +154,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
       log.info({ envId, name, type }, 'CEA environment created');
 
+      const memEnv = memStore.get(envId);
       return reply.code(201).send({
         id: envId,
         name,
@@ -169,7 +170,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
           growthStage: c.growthStage,
         })),
         status: 'active',
-        createdAt: now,
+        createdAt: memEnv?.createdAt || now.toISOString(),
       });
     },
   });
