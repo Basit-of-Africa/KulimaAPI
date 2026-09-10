@@ -2,9 +2,11 @@
 
 import { withAuth } from '@/components/withAuth';
 import { useState, useEffect } from 'react';
-import { MapPin, Cloud, Thermometer, Droplets, Wind, Leaf, Search } from 'lucide-react';
-import { getBatchWeather, batchResolveLocations, getVegetationHealth, getSoilProfile } from '@/lib/api';
+import { MapPin, Cloud, Thermometer, Droplets, Wind, Leaf, Crosshair, Loader2 } from 'lucide-react';
+import { getBatchWeather, getWeather, getVegetationHealth, getSoilProfile } from '@/lib/api';
 import { cn, getNdviColor } from '@/lib/utils';
+import { LocationPicker } from '@/components/LocationPicker';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 const SAMPLE_FARMS = [
   { name: 'Lagos Farm Alpha', lat: 6.52, lng: 3.38, crop: 'cassava', area: 5.2 },
