@@ -144,7 +144,7 @@ describe('Location Endpoints', () => {
 describe('Crop Endpoints', () => {
   it('GET /v2/crops should list all crops', async () => {
     const result = await api<any>('/v2/crops');
-    expect(result.count).toBe(7);
+    expect(result.count).toBe(16);
     expect(result.crops.some((c: any) => c.name === 'maize')).toBe(true);
   });
 
