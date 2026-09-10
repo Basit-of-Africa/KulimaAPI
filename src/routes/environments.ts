@@ -464,7 +464,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
         [],
       );
 
-      const latestReading = latestReadings[0] || undefined;
+      const latestReading = (latestReadings[0] as any) || undefined;
 
       // Fetch recent readings for trend
       const previousReadings = await tryDb(
