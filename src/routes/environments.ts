@@ -92,25 +92,23 @@ export default async function environmentRoutes(app: FastifyInstance) {
       };
 
       const envId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      const envRecord = {
+      const now = new Date();
+      const envRecord: any = {
         id: envId,
         orgId: key.orgId,
         farmId: farmId || null,
         name,
         type,
-        latitude,
-        longitude,
-        altitude: altitude || null,
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        altitude: altitude ? Number(altitude) : null,
         infrastructure: { ...defaultInfra, ...infrastructure },
         sensors: { ...defaultSensors, ...sensors },
         status: 'active',
-        createdAt: now,
-        updatedAt: now,
       };
 
       // Store crops
-      const cropRecords = (crops || []).map((c: any) => ({
+      const cropRecords: any[] = (crops || []).map((c: any) => ({
         id: crypto.randomUUID(),
         environmentId: envId,
         cropName: c.cropName,
@@ -121,12 +119,26 @@ export default async function environmentRoutes(app: FastifyInstance) {
         growthStage: c.growthStage || 'vegetative',
         substrate: c.substrate || null,
         nutrientRecipe: c.nutrientRecipe || null,
-        createdAt: now,
       }));
 
-      await tryDb(
-        () => db.insert(environments).values(envRecord).returning(),
-        [envRecord],
+      const dbEnvRecord = await tryDb(
+        async () => {
+          const rows = await db.insert(environments).values({
+            id: envId,
+            orgId: key.orgId,
+            farmId: farmId || null,
+            name,
+            type,
+            latitude: Number(latitude),
+            longitude: Number(longitude),
+            altitude: altitude ? Number(altitude) : null,
+            infrastructure: { ...defaultInfra, ...infrastructure },
+            sensors: { ...defaultSensors, ...sensors },
+            status: 'active',
+          }).returning();
+          return rows[0];
+        },
+        envRecord,
       );
 
       if (cropRecords.length > 0) {
@@ -137,7 +149,8 @@ export default async function environmentRoutes(app: FastifyInstance) {
       }
 
       // Also store in memory for quick access
-      memStore.set(envId, { ...envRecord, crops: cropRecords });
+      const createdAt = dbEnvRecord?.createdAt instanceof Date ? dbEnvRecord.createdAt.toISOString() : now.toISOString();
+      memStore.set(envId, { ...envRecord, crops: cropRecords, createdAt, updatedAt: createdAt });
 
       log.info({ envId, name, type }, 'CEA environment created');
 
