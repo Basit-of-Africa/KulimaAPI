@@ -108,6 +108,20 @@ export async function authenticateApiKey(
       monthlyQuota: key.monthlyQuota,
     };
   } catch (err) {
+    // DB unavailable — try in-memory fallback
+    setDbAvailable(false);
+    const memKey = lookupByKeyPrefix(keyPrefix);
+    if (memKey && memKey.status === 'active') {
+      request.apiKey = {
+        id: memKey.id,
+        orgId: memKey.orgId,
+        keyPrefix: memKey.keyPrefix,
+        status: memKey.status,
+        rateLimit: memKey.rateLimit,
+        monthlyQuota: memKey.monthlyQuota,
+      };
+      return;
+    }
     log.error(err, 'Auth middleware error');
     return reply.code(500).send({
       error: 'Internal Error',

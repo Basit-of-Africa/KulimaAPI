@@ -3,27 +3,13 @@ import { db, apiKeys, organisations } from '../database/index.js';
 import { eq, sql, and, gte } from 'drizzle-orm';
 import { revokeApiKey, rotateApiKey } from '../middleware/apiKeyManager.js';
 import { authenticateApiKey } from '../middleware/auth.js';
+import { storeApiKey, lookupByKeyPrefix, getAllKeys, deleteKey, setDbAvailable, getDbAvailable } from '../middleware/apiKeyStore.js';
 import { createChildLogger } from '../logger.js';
 import crypto from 'crypto';
 
 const log = createChildLogger('routes/auth');
 
 // ─── In-memory store (used when DB is unavailable) ───────────────────────────
-interface InMemoryKey {
-  id: string;
-  orgId: string;
-  name: string;
-  keyHash: string;
-  keyPrefix: string;
-  rawKey: string;
-  status: string;
-  rateLimit: number;
-  monthlyQuota: number;
-  createdAt: string;
-}
-
-const memStore: Map<string, InMemoryKey> = new Map();
-let dbAvailable = true;
 
 function generateKey(): { rawKey: string; keyPrefix: string; keyHash: string } {
   const rawKey = `kulima_${crypto.randomBytes(24).toString('hex')}`;
@@ -33,7 +19,7 @@ function generateKey(): { rawKey: string; keyPrefix: string; keyHash: string } {
 }
 
 function isDbAvailable(): boolean {
-  return dbAvailable;
+  return getDbAvailable();
 }
 
 export default async function authRoutes(app: FastifyInstance) {
