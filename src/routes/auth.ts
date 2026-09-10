@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db, apiKeys, organisations } from '../database/index.js';
 import { eq, sql, and, gte } from 'drizzle-orm';
+import { revokeApiKey, rotateApiKey } from '../middleware/apiKeyManager.js';
 import { authenticateApiKey } from '../middleware/auth.js';
 import { createChildLogger } from '../logger.js';
 import crypto from 'crypto';
