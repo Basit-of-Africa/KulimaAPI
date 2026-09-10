@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { db, apiKeys, organisations } from '../database/index.js';
 import { eq, and, gt } from 'drizzle-orm';
 import { createChildLogger } from '../logger.js';
+import { lookupByKeyPrefix, setDbAvailable, getDbAvailable } from './apiKeyStore.js';
 
 const log = createChildLogger('auth');
 
