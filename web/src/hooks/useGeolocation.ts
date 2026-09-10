@@ -127,4 +127,4 @@ export function useGeolocation(options: UseGeolocationOptions = {}): UseGeolocat
   return { position, error, loading, detect, clearError };
 }
 
-function log = { debug: (msg: string) => console.log(`[GeoLocation] ${msg}`) };
+const log = { debug: (msg: string) => console.log(`[GeoLocation] ${msg}`) };
