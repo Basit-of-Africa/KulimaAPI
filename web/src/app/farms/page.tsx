@@ -83,6 +83,51 @@ function Page() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">Interactive overview of registered farms</p>
       </div>
 
+      {/* Location Detection Bar */}
+      <div className="mb-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Crosshair size={16} className="text-kulima-500" />
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Auto-Detect Location</h3>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          Use your device GPS or search for a location to get instant weather data
+        </p>
+        <LocationPicker
+          value={locationPicker}
+          onChange={setLocationPicker}
+          placeholder="Search for a location or click Detect..."
+        />
+
+        {locationPicker && locationPicker.lat !== 0 && (
+          <div className="mt-4 p-4 bg-kulima-50 dark:bg-kulima-950/30 rounded-xl border border-kulima-200 dark:border-kulima-800">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-kulima-700 dark:text-kulima-400">
+                Weather at {locationPicker.name || 'your location'}
+              </p>
+              {detectingWeather && <Loader2 size={14} className="animate-spin text-kulima-500" />}
+            </div>
+            {detectingWeather ? (
+              <p className="text-xs text-kulima-600 dark:text-kulima-400">Fetching weather data...</p>
+            ) : detectedWeather && !detectedWeather.error ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <WeatherStat icon={Thermometer} label="Temperature" value={`${detectedWeather.temperatureC}°C`} color="text-orange-500" />
+                <WeatherStat icon={Droplets} label="Humidity" value={`${detectedWeather.humidityPercent}%`} color="text-blue-500" />
+                <WeatherStat icon={Wind} label="Wind" value={`${detectedWeather.windSpeedKmh} km/h`} color="text-gray-500" />
+                <WeatherStat icon={Cloud} label="Precipitation" value={`${detectedWeather.precipitationMm}mm`} color="text-gray-400" />
+              </div>
+            ) : detectedWeather?.error ? (
+              <p className="text-xs text-red-500">Weather data unavailable</p>
+            ) : null}
+          </div>
+        )}
+
+        {geoError && (
+          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            <p className="text-xs text-amber-700 dark:text-amber-400">{geoError}</p>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Map */}
         <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
