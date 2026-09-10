@@ -27,6 +27,10 @@ function Page() {
   const [weather, setWeather] = useState<Record<string, any>>({});
   const [ndvi, setNdvi] = useState<Record<string, any>>({});
   const [soil, setSoil] = useState<Record<string, any>>({});
+  const [locationPicker, setLocationPicker] = useState<{ lat: number; lng: number; name?: string } | null>(null);
+  const [detectedWeather, setDetectedWeather] = useState<any>(null);
+  const [detectingWeather, setDetectingWeather] = useState(false);
+  const { position, error: geoError, loading: geoLoading, detect } = useGeolocation();
 
   useEffect(() => {
     async function loadData() {
@@ -40,6 +44,18 @@ function Page() {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (locationPicker && locationPicker.lat !== 0) {
+      setDetectingWeather(true);
+      getWeather(locationPicker.lat, locationPicker.lng)
+        .then(setDetectedWeather)
+        .catch(() => setDetectedWeather(null))
+        .finally(() => setDetectingWeather(false));
+    } else {
+      setDetectedWeather(null);
+    }
+  }, [locationPicker]);
 
   const loadDetails = async (farm: any) => {
     setSelected(farm);
