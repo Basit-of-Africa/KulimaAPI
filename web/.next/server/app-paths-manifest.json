@@ -1,4 +1,4 @@
 {
-  "/crops/page": "app/crops/page.js",
-  "/keys/page": "app/keys/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js"
 }
