@@ -25,6 +25,7 @@ export const getChangelog = () => api<any>('/v1/changelog');
 
 // Weather
 export const getCurrentWeather = (lat: number, lng: number) => api<any>(`/v1/weather/current/${lat}/${lng}`);
+export const getWeather = getCurrentWeather; // Alias for convenience
 export const getForecast = (lat: number, lng: number, days = 7) => api<any>(`/v1/weather/forecast/${lat}/${lng}?days=${days}`);
 export const getBatchWeather = (locations: Array<{ lat: number; lng: number }>) =>
   api<any>('/v2/weather/batch', { method: 'POST', body: JSON.stringify({ locations }) });
