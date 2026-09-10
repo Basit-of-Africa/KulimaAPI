@@ -89,7 +89,7 @@ export default async function authRoutes(app: FastifyInstance) {
           });
         } catch (err: any) {
           log.error({ err: err.message }, 'DB key creation failed, falling back to in-memory');
-          dbAvailable = false;
+          setDbAvailable(false);
         }
       }
 
@@ -98,20 +98,19 @@ export default async function authRoutes(app: FastifyInstance) {
       const id = crypto.randomUUID();
       const orgId = inputOrgId || crypto.randomUUID();
 
-      const key: InMemoryKey = {
+      const key = {
         id,
         orgId,
         name,
         keyHash,
         keyPrefix,
-        rawKey,
         status: 'active',
         rateLimit: rateLimit || 1000,
         monthlyQuota: monthlyQuota || 1000,
         createdAt: new Date().toISOString(),
       };
 
-      memStore.set(id, key);
+      storeApiKey(key);
       log.info({ keyId: id, orgId }, 'API key created (in-memory)');
 
       return reply.code(201).send({
