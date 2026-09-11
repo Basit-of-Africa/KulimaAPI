@@ -1,9 +1,20 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
+function getApiKey(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('kulima_api_key');
+}
+
+export function setApiKey(key: string) {
+  localStorage.setItem('kulima_api_key', key);
+}
+
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
+  const apiKey = getApiKey();
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       ...options?.headers,
     },
     ...options,

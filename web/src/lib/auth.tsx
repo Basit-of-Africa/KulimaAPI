@@ -89,6 +89,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(sessionUser);
     saveSession(sessionUser);
+
+    // Auto-create an API key for the new user
+    try {
+      const res = await fetch('http://localhost:3000/v1/auth/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `${name}'s Key` }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.key) {
+          localStorage.setItem('kulima_api_key', data.key);
+        }
+      }
+    } catch {
+      // API key creation is best-effort — user can create one later from the Keys page
+    }
   };
 
   const signIn = async (email: string, password: string) => {

@@ -1,8 +1,7 @@
 {
-  "/dashboard/page": "app/dashboard/page.js",
-  "/crops/page": "app/crops/page.js",
-  "/explorer/page": "app/explorer/page.js",
-  "/docs/page": "app/docs/page.js",
   "/environments/page": "app/environments/page.js",
-  "/keys/page": "app/keys/page.js"
+  "/explorer/page": "app/explorer/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/keys/page": "app/keys/page.js",
+  "/docs/page": "app/docs/page.js"
 }
