@@ -1,7 +1,3 @@
 {
-  "/docs/page": "app/docs/page.js",
-  "/explorer/page": "app/explorer/page.js",
-  "/keys/page": "app/keys/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
   "/environments/page": "app/environments/page.js"
 }
