@@ -65,3 +65,21 @@ export const getAlerts = (lat: number, lng: number) => api<any>(`/v1/farm/${lat}
 export const getFarms = () => api<any>('/v1/farms');
 export const createFarm = (data: any) => api<any>('/v1/farms', { method: 'POST', body: JSON.stringify(data) });
 export const getFarmDashboard = () => api<any>('/v2/farms/dashboard');
+
+// CEA — Controlled Environment Agriculture
+export const getEnvironments = () => api<any>('/v2/environments');
+export const getEnvironment = (id: string) => api<any>(`/v2/environments/${id}`);
+export const createEnvironment = (data: any) =>
+  api<any>('/v2/environments', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+export const updateEnvironment = (id: string, data: any) =>
+  api<any>(`/v2/environments/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+export const deleteEnvironment = (id: string) =>
+  api<any>(`/v2/environments/${id}`, { method: 'DELETE' });
+export const submitReadings = (id: string, readings: any[]) =>
+  api<any>(`/v2/environments/${id}/readings`, { method: 'POST', body: JSON.stringify({ readings }), headers: { 'Content-Type': 'application/json' } });
+export const getCEAIntelligence = (id: string) =>
+  api<any>(`/v2/environments/${id}/intelligence`, { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } });
+export const getControlSetpoints = (id: string) => api<any>(`/v2/environments/${id}/control-setpoints`);
+export const getEnergyBudget = (id: string) => api<any>(`/v2/environments/${id}/energy-budget`);
+export const getYieldForecast = (id: string) => api<any>(`/v2/environments/${id}/yield-forecast`);
+export const getEnvironmentAnalytics = (id: string) => api<any>(`/v2/environments/${id}/analytics`);

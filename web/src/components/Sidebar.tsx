@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import {
   LayoutDashboard, Map, Wheat, FlaskConical, Key,
-  BookOpen, Sprout, ChevronRight, Leaf, LogOut, User
+  BookOpen, Sprout, ChevronRight, Leaf, LogOut, User,
+  Factory
 } from 'lucide-react';
 
 const NAV = [
@@ -14,6 +15,7 @@ const NAV = [
   { href: '/explorer', label: 'API Explorer', icon: FlaskConical },
   { href: '/farms', label: 'Farm Map', icon: Map },
   { href: '/crops', label: 'Crop Tools', icon: Wheat },
+  { href: '/environments', label: 'CEA Environments', icon: Factory },
   { href: '/keys', label: 'API Keys', icon: Key },
   { href: '/docs', label: 'Documentation', icon: BookOpen },
 ];
