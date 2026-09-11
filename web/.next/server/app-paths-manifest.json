@@ -1,7 +1,7 @@
 {
-  "/environments/page": "app/environments/page.js",
+  "/docs/page": "app/docs/page.js",
   "/explorer/page": "app/explorer/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
   "/keys/page": "app/keys/page.js",
-  "/docs/page": "app/docs/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/environments/page": "app/environments/page.js"
 }
