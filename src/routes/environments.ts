@@ -177,18 +177,19 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments — List all environments ─────────────────────
   app.get('/v2/environments', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
-      const key = request.apiKey!;
+      const orgId = request.apiKey?.orgId;
 
       let rows = await tryDb(
-        () => db.select().from(environments).where(eq(environments.orgId, key.orgId)),
+        () => orgId ? db.select().from(environments).where(eq(environments.orgId, orgId)) : Promise.resolve([]),
         [],
       );
 
       // Merge with memory store for environments created in this session
       if (rows.length === 0) {
-        rows = Array.from(memStore.values()).filter((e: any) => e.orgId === key.orgId);
+        const all = Array.from(memStore.values());
+        rows = orgId ? all.filter((e: any) => e.orgId === orgId) : all;
       }
 
       return {
@@ -208,7 +209,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id — Get environment details ──────────────
   app.get('/v2/environments/:id', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
@@ -444,7 +445,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── POST /v2/environments/:id/intelligence — Full CEA intelligence ──
   app.post('/v2/environments/:id/intelligence', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
@@ -574,7 +575,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/control-setpoints — Recommended settings ─
   app.get('/v2/environments/:id/control-setpoints', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
@@ -612,7 +613,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/energy-budget — Energy cost forecast ───
   app.get('/v2/environments/:id/energy-budget', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
@@ -646,7 +647,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/yield-forecast — Expected yield ────────
   app.get('/v2/environments/:id/yield-forecast', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
@@ -774,7 +775,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/control-log — Historical control actions ─
   app.get('/v2/environments/:id/control-log', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
       const query = request.query as any;
@@ -800,7 +801,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/nutrients — Current nutrient schedule ──
   app.get('/v2/environments/:id/nutrients', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
@@ -861,7 +862,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/analytics — Performance analytics ─────
   app.get('/v2/environments/:id/analytics', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
@@ -930,7 +931,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/comparison — Compare multiple facilities ────
   app.get('/v2/environments/comparison', {
-    preHandler: [authenticateApiKey, trackUsage],
+    preHandler: [optionalAuth, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const key = request.apiKey!;
       const query = request.query as any;
