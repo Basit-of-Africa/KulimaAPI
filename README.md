@@ -415,7 +415,7 @@ npx tsc --noEmit
 
 ## 📄 License
 
-MIT License
+All Rights Reserved.
 
 Copyright (c) 2026 [Basit-of-Africa](https://github.com/Basit-of-Africa)
 
