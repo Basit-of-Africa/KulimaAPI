@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { db, apiUsage } from '../database/index.js';
-import { and, eq, gte } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 import { createChildLogger } from '../logger.js';
 
 const log = createChildLogger('usage');
