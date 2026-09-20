@@ -43,6 +43,6 @@ export const env = {
   },
 
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: (process.env.CORS_ORIGIN || 'http://localhost:3001').split(',').map((s: string) => s.trim()),
   },
 } as const;
