@@ -1,8 +1,8 @@
 'use client';
 
 import { withAuth } from '@/components/withAuth';
-import { useState } from 'react';
-import { Key, Plus, Copy, Check, AlertTriangle, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Key, Plus, Copy, Check, AlertTriangle, Shield, RefreshCw } from 'lucide-react';
 import { api } from '@/lib/api';
 
 function Page() {
@@ -10,9 +10,26 @@ function Page() {
   const [orgId, setOrgId] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingKeys, setLoadingKeys] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Load existing keys on mount
+  useEffect(() => {
+    loadKeys();
+  }, []);
+
+  async function loadKeys() {
+    setLoadingKeys(true);
+    try {
+      const result = await api<any>('/v1/auth/keys');
+      setKeys(result.keys || []);
+    } catch {
+      // Keys may not be accessible yet
+    }
+    setLoadingKeys(false);
+  }
 
   const handleCreate = async () => {
     if (!name) { setError('Key name is required.'); return; }
