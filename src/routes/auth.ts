@@ -126,6 +126,64 @@ export default async function authRoutes(app: FastifyInstance) {
     },
   });
 
+  // ─── GET /v1/auth/keys — List API Keys ────────────────────────────────
+  app.get('/v1/auth/keys', {
+    preHandler: [authenticateApiKey],
+    schema: {
+      description: 'List API keys for your organisation',
+      tags: ['Auth'],
+    },
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const key = request.apiKey!;
+      const orgId = key.orgId;
+
+      let rows: any[] = [];
+      if (isDbAvailable()) {
+        try {
+          rows = await db
+            .select({
+              id: apiKeys.id,
+              name: apiKeys.name,
+              keyPrefix: apiKeys.keyPrefix,
+              status: apiKeys.status,
+              rateLimit: apiKeys.rateLimit,
+              monthlyQuota: apiKeys.monthlyQuota,
+              createdAt: apiKeys.createdAt,
+            })
+            .from(apiKeys)
+            .where(eq(apiKeys.orgId, orgId));
+        } catch {
+          // Fall through to in-memory
+        }
+      }
+
+      if (rows.length === 0) {
+        // Fallback: return keys from in-memory store
+        rows = getAllKeys()
+          .filter((k: any) => k.orgId === orgId)
+          .map((k: any) => ({
+            id: k.id,
+            name: k.name,
+            keyPrefix: k.keyPrefix,
+            status: k.status,
+            rateLimit: k.rateLimit,
+            monthlyQuota: k.monthlyQuota,
+            createdAt: k.createdAt,
+          }));
+      }
+
+      // Mark the current key
+      return {
+        count: rows.length,
+        keys: rows.map((r: any) => ({
+          ...r,
+          isCurrent: r.id === key.id,
+          keyHash: undefined, // never expose hash
+        })),
+      };
+    },
+  });
+
   // ─── DELETE /v1/auth/keys/:keyId — Revoke API Key ─────────────────────
   app.delete('/v1/auth/keys/:keyId', {
     preHandler: [authenticateApiKey],
