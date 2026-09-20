@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import crypto from 'crypto';
 import { db, apiKeys, organisations } from '../database/index.js';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, sql } from 'drizzle-orm';
 import { createChildLogger } from '../logger.js';
 import { lookupByKeyPrefix, setDbAvailable, getDbAvailable } from './apiKeyStore.js';
 
@@ -54,8 +55,9 @@ export async function authenticateApiKey(
     });
   }
 
-  // Extract prefix (first 12 chars) for quick lookup
+  // Extract prefix (first 12 chars) for quick lookup, then verify full hash
   const keyPrefix = rawKey.slice(0, 12);
+  const computedHash = crypto.createHash('sha256').update(rawKey).digest('hex');
 
   try {
     const rows = await db
@@ -63,6 +65,7 @@ export async function authenticateApiKey(
         id: apiKeys.id,
         orgId: apiKeys.orgId,
         keyPrefix: apiKeys.keyPrefix,
+        keyHash: apiKeys.keyHash,
         status: apiKeys.status,
         rateLimit: apiKeys.rateLimit,
         monthlyQuota: apiKeys.monthlyQuota,
@@ -81,6 +84,19 @@ export async function authenticateApiKey(
     }
 
     const key = rows[0];
+
+    // Verify full SHA-256 hash — prevents prefix-collision attacks
+    const hashValid = crypto.timingSafeEqual(
+      Buffer.from(computedHash, 'hex'),
+      Buffer.from(key.keyHash, 'hex'),
+    );
+    if (!hashValid) {
+      log.warn({ keyPrefix }, 'API key hash mismatch');
+      return reply.code(401).send({
+        error: 'Unauthorized',
+        message: 'Invalid API key.',
+      });
+    }
 
     // Check status
     if (key.status !== 'active') {
@@ -108,7 +124,7 @@ export async function authenticateApiKey(
       monthlyQuota: key.monthlyQuota,
     };
   } catch (err) {
-    // DB unavailable — try in-memory fallback
+    // DB unavailable — try in-memory fallback (prefix match only — acceptable for dev)
     setDbAvailable(false);
     const memKey = lookupByKeyPrefix(keyPrefix);
     if (memKey && memKey.status === 'active') {

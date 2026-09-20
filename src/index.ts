@@ -51,13 +51,16 @@ const app = Fastify({
 await app.register(cors, {
   origin: env.cors.origin,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true,
+  maxAge: 86400,
 });
 
 await app.register(helmet);
 
 await app.register(rateLimit, {
-  max: 100,
+  max: parseInt(process.env.GLOBAL_RATE_LIMIT_MAX || '100', 10),
   timeWindow: '1 minute',
+  allowList: ['/health', '/health/providers', '/v1/status'],
 });
 
 // ─── Swagger / OpenAPI ──────────────────────────────────────────────────────

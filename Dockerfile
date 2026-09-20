@@ -8,8 +8,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install all dependencies (including devDependencies for tsc build)
+RUN npm ci && npm cache clean --force
 
 # Copy source code
 COPY tsconfig.json ./
@@ -18,6 +18,9 @@ COPY drizzle.config.ts ./
 
 # Build TypeScript
 RUN npx tsc
+
+# Prune devDependencies for production
+RUN npm prune --production
 
 # ─── Production Stage ─────────────────────────────────────────────────────────
 FROM base AS production
