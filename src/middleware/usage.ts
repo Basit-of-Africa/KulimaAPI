@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { db, apiUsage } from '../database/index.js';
+import { and, gte } from 'drizzle-orm';
 import { createChildLogger } from '../logger.js';
 
 const log = createChildLogger('usage');
@@ -22,12 +23,12 @@ export async function trackUsage(
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const [result] = await db
-          .select({ count: { value: apiUsage.id, mode: 'count' as const } })
+          .select({ count: sql<number>`count(*)` })
           .from(apiUsage)
           .where(
-            require('drizzle-orm').and(
-              require('drizzle-orm').eq(apiUsage.apiKeyId, request.apiKey.id),
-              require('drizzle-orm').gte(apiUsage.timestamp, monthStart),
+            and(
+              eq(apiUsage.apiKeyId, request.apiKey.id),
+              gte(apiUsage.timestamp, monthStart),
             )
           );
 
