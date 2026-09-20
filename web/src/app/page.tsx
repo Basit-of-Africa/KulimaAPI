@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { TopNav } from '@/components/TopNav';
 import {
   Sprout, ArrowRight, Cloud, Wheat, Map, Satellite, Shield,
   Zap, Code, Globe, Leaf, ChevronRight, Star, Users, Database
@@ -78,6 +79,7 @@ console.log(\`Suitability: \${soil.suitability}\`);`;
 export default function LandingPage() {
   return (
     <div className="min-h-screen">
+      <TopNav />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-kulima-600 via-kulima-700 to-emerald-700 text-white">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
