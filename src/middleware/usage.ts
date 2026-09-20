@@ -6,7 +6,7 @@ const log = createChildLogger('usage');
 
 /**
  * Usage metering middleware — logs every request to the api_usage table.
- * Runs after the response is sent so it doesn't block the user.
+ * Also enforces monthly quota when DB is available.
  */
 export async function trackUsage(
   request: FastifyRequest,
@@ -14,9 +14,38 @@ export async function trackUsage(
 ): Promise<void> {
   const startTime = Date.now();
 
-  // We use the 'onResponse' hook instead, but as a preHandler this
-  // captures the start time. The actual logging happens in onResponse.
-  reply.raw.on('finish', async () => {
+  // Enforce monthly quota (check before processing)
+  if (request.apiKey) {
+    const quota = request.apiKey.monthlyQuota;
+    if (quota && quota > 0) {
+      try {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const [result] = await db
+          .select({ count: { value: apiUsage.id, mode: 'count' as const } })
+          .from(apiUsage)
+          .where(
+            require('drizzle-orm').and(
+              require('drizzle-orm').eq(apiUsage.apiKeyId, request.apiKey.id),
+              require('drizzle-orm').gte(apiUsage.timestamp, monthStart),
+            )
+          );
+
+        const usageCount = (result as any)?.count ?? 0;
+        if (usageCount >= quota) {
+          return reply.code(429).send({
+            error: 'Quota Exceeded',
+            message: `Monthly API quota of ${quota} requests has been reached. Contact support to increase your limit.`,
+            quota,
+            used: usageCount,
+            resetsAt: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString(),
+          });
+        }
+      } catch {
+        // DB unavailable — skip quota enforcement (graceful degradation)
+      }
+    }
+  }
     const responseTimeMs = Date.now() - startTime;
 
     if (!request.apiKey) return; // Skip unauthenticated requests
