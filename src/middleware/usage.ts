@@ -46,6 +46,9 @@ export async function trackUsage(
       }
     }
   }
+
+  // Log usage after response is sent (non-blocking)
+  reply.raw.on('finish', async () => {
     const responseTimeMs = Date.now() - startTime;
 
     if (!request.apiKey) return; // Skip unauthenticated requests
