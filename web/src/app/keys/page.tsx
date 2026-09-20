@@ -114,10 +114,14 @@ function Page() {
 
       {/* Keys List */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Shield size={16} /> Active Keys
           </h2>
+          <button onClick={loadKeys} disabled={loadingKeys}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+            <RefreshCw size={12} className={loadingKeys ? 'animate-spin' : ''} /> Refresh
+          </button>
         </div>
         {keys.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
