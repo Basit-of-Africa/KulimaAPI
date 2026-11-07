@@ -72,6 +72,15 @@ export const getIntelligence = (lat: number, lng: number, crop?: string) => {
 export const getSeason = (lat: number, lng: number) => api<any>(`/v1/farm/${lat}/${lng}/season`);
 export const getAlerts = (lat: number, lng: number) => api<any>(`/v1/farm/${lat}/${lng}/alerts`);
 
+// AI Advisor (prototype)
+export const explainAdvisor = (data: {
+  lat: number;
+  lng: number;
+  crop?: string;
+  language: string;
+  question?: string;
+}) => api<any>('/v2/advisor/explain', { method: 'POST', body: JSON.stringify(data) });
+
 // Farms
 export const getFarms = () => api<any>('/v1/farms');
 export const createFarm = (data: any) => api<any>('/v1/farms', { method: 'POST', body: JSON.stringify(data) });

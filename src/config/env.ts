@@ -29,6 +29,11 @@ export const env = {
     },
   },
 
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+    model: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-latest',
+  },
+
   rateLimit: {
     free: parseInt(process.env.RATE_LIMIT_FREE || '1000', 10),
     developer: parseInt(process.env.RATE_LIMIT_DEVELOPER || '10000', 10),

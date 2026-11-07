@@ -21,6 +21,7 @@ import satelliteRoutes from './routes/satellite.js';
 import farmsV2Routes from './routes/farmsV2.js';
 import platformRoutes from './routes/platform.js';
 import environmentRoutes from './routes/environments.js';
+import advisorRoutes from './routes/advisor.js';
 import { getWeatherProvider, getGeoProvider } from './providers/index.js';
 import { startHealthCheckCron, stopHealthCheckCron } from './cache/healthCheck.js';
 import { startWebhookProcessor, stopWebhookProcessor } from './webhooks/delivery.js';
@@ -100,6 +101,7 @@ await app.register(swagger, {
       { name: 'Location', description: 'Location resolution and geocoding' },
       { name: 'Farms', description: 'Farm registration and management' },
       { name: 'Account', description: 'Account and usage information' },
+      { name: 'Advisor', description: 'AI advisor prototype — farmer-friendly explanations' },
     ],
   },
 });
@@ -125,6 +127,7 @@ await app.register(satelliteRoutes);
 await app.register(farmsV2Routes);
 await app.register(platformRoutes);
 await app.register(environmentRoutes);
+await app.register(advisorRoutes);
 
 // ─── Error Handlers ────────────────────────────────────────────────────────
 app.setErrorHandler(errorHandler);
