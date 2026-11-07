@@ -264,6 +264,38 @@ curl -X POST http://localhost:3000/v2/advisor/explain \
 
 ---
 
+## 📱 Consumer PWA (`web-frontend/`)
+
+A mobile-first installable web app for farmers — the consumer counterpart to the
+operator console in `web/`. Built with Vite + React + Tailwind; it talks to the
+API through a same-origin `/api` proxy (no CORS setup needed in dev).
+
+```bash
+cd web-frontend
+npm install
+npm run dev        # http://localhost:3003
+```
+
+**Screens:** onboarding (pick location + crop), Today (live weather + risks,
+recommendations, confidence), Alerts, AI Advisor (same prototype endpoint as
+above — mic questions, read-aloud, Prototype badge + disclaimer), Planting
+(season + crop planting window), and My farms.
+
+**Honest limitations — this is a prototype:**
+
+- **Accounts:** signup mints a real API key via `POST /v1/auth/keys`; the key is
+  shown once as a **recovery code** that restores your account on another
+  device. Passwords are stored in the browser only — not real authentication.
+- **Farm sync** (`/v1/farms`) requires the server database; without Postgres the
+  app says so plainly and keeps the farm on-device only.
+- **Caching:** API reads are cached locally and shown with an "updated X ago"
+  marker; when offline the last copy is served flagged as stale. The service
+  worker registers in production builds only.
+- **Weather caveat:** the upstream Open-Meteo *forecast* call currently returns
+  400, so forecast/season data may be unavailable (current weather works).
+
+---
+
 ## 🧪 Testing
 
 ```bash
