@@ -1,14 +1,36 @@
 import { getRedisClient } from './redis.js';
 import { createChildLogger } from '../logger.js';
+import { env } from '../config/env.js';
 
 const log = createChildLogger('cache');
 
 // ─── Cache Service ───────────────────────────────────────────────────────────
 
 /**
- * In-memory fallback cache when Redis is unavailable.
+ * Per-server in-memory cache, used as a fast first layer and as the fallback
+ * when Redis is unavailable. Bounded: once it holds MEMORY_CACHE_MAX_ENTRIES
+ * items the least recently used are evicted, so it can't exhaust memory.
+ * (Map keeps insertion order; re-inserting on access makes it an LRU.)
  */
 const memoryCache = new Map<string, { data: string; expiresAt: number }>();
+
+function memorySet(key: string, entry: { data: string; expiresAt: number }, maxEntries = env.cache.memoryMaxEntries): void {
+  memoryCache.delete(key);
+  memoryCache.set(key, entry);
+  while (memoryCache.size > maxEntries) {
+    const oldest = memoryCache.keys().next().value;
+    if (oldest === undefined) break;
+    memoryCache.delete(oldest);
+  }
+}
+
+/** For tests only. */
+export function _memoryCacheSizeForTests(): number {
+  return memoryCache.size;
+}
+export function _clearMemoryCacheForTests(): void {
+  memoryCache.clear();
+}
 
 export class CacheService {
   private prefix: string;
@@ -46,8 +68,10 @@ export class CacheService {
     const cached = memoryCache.get(fullKey);
     if (cached && cached.expiresAt > Date.now()) {
       log.debug({ key: fullKey }, 'Cache hit (memory)');
+      memorySet(fullKey, cached); // mark as recently used
       return JSON.parse(cached.data) as T;
     }
+    if (cached) memoryCache.delete(fullKey); // expired
 
     log.debug({ key: fullKey }, 'Cache miss');
     return null;
@@ -72,8 +96,8 @@ export class CacheService {
       }
     }
 
-    // Also store in memory as fallback
-    memoryCache.set(fullKey, { data: serialized, expiresAt });
+    // Also store in the bounded memory layer
+    memorySet(fullKey, { data: serialized, expiresAt });
   }
 
   /**

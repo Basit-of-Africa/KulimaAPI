@@ -73,6 +73,9 @@ vi.mock('../middleware/auth.js', () => ({
 }));
 
 const { default: authRoutes } = await import('./auth.js');
+const { env } = await import('../config/env.js');
+const { _resetDbAvailabilityForTests } = await import('../database/availability.js');
+const { getAllKeys, _clearApiKeyStoreForTests } = await import('../middleware/apiKeyStore.js');
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
@@ -84,6 +87,8 @@ beforeEach(async () => {
   state.orgs.set(ORG_A, { id: ORG_A, plan: 'developer', monthlyQuota: 50000 });
   (globalThis as any).__lookupOrg = undefined;
   createApiKey.mockClear();
+  _resetDbAvailabilityForTests();
+  _clearApiKeyStoreForTests();
   revokeApiKey.mockClear();
   rotateApiKey.mockClear();
 
@@ -193,5 +198,34 @@ describe('revoke and rotate', () => {
     const res = await app.inject({ method: 'POST', url: `/v1/auth/keys/${KEY}/rotate`, headers: { authorization: 'Bearer org-a' } });
     expect(res.statusCode).toBe(404); // mock returns null → not found in caller's org
     expect(rotateApiKey).toHaveBeenCalledWith(KEY, ORG_A);
+  });
+});
+
+// ─── Database outage ─────────────────────────────────────────────────────────
+
+describe('POST /v1/auth/keys — database down', () => {
+  const original = env.allowMemoryFallback;
+  afterEach(() => {
+    env.allowMemoryFallback = original;
+  });
+
+  const outage = () =>
+    createApiKey.mockRejectedValueOnce(Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }));
+
+  it('production: returns 503 and never issues a memory-only key', async () => {
+    env.allowMemoryFallback = false;
+    outage();
+    const res = await post({ name: 'During outage' });
+    expect(res.statusCode).toBe(503);
+    expect(res.json()).not.toHaveProperty('key');
+    expect(getAllKeys()).toHaveLength(0);
+  });
+
+  it('development: falls back to an in-memory key', async () => {
+    env.allowMemoryFallback = true;
+    outage();
+    const res = await post({ name: 'Dev outage' });
+    expect(res.statusCode).toBe(201);
+    expect(getAllKeys()).toHaveLength(1);
   });
 });

@@ -1,7 +1,22 @@
 import type { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 import { createChildLogger } from '../logger.js';
+import { isDbConnectionError, markDbDown, RETRY_AFTER_SECONDS } from '../database/availability.js';
 
 const log = createChildLogger('errors');
+
+const STATUS_NAMES: Record<number, string> = {
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  409: 'Conflict',
+  413: 'Payload Too Large',
+  415: 'Unsupported Media Type',
+  422: 'Unprocessable Entity',
+  429: 'Too Many Requests',
+  500: 'Internal Server Error',
+  503: 'Service Unavailable',
+};
 
 /**
  * Standard error response structure.
@@ -24,6 +39,23 @@ export async function errorHandler(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
+  // Database unreachable → honest 503 with Retry-After, not a generic 500.
+  if (isDbConnectionError(error)) {
+    markDbDown(error);
+    log.warn({ requestId: request.id, url: request.url, method: request.method }, 'Request failed: database unavailable');
+    reply
+      .code(503)
+      .header('Retry-After', String(RETRY_AFTER_SECONDS))
+      .send({
+        error: 'Service Unavailable',
+        message: 'The database is temporarily unavailable. Please retry shortly.',
+        statusCode: 503,
+        timestamp: new Date().toISOString(),
+        requestId: request.id,
+      } satisfies ErrorResponse);
+    return;
+  }
+
   const statusCode = error.statusCode || 500;
 
   // Log server errors
@@ -40,7 +72,8 @@ export async function errorHandler(
   }
 
   const response: ErrorResponse = {
-    error: error.name || 'Error',
+    // Generic error names ("Error", "FastifyError") say nothing; use the HTTP status name instead.
+    error: error.name && !['Error', 'FastifyError'].includes(error.name) ? error.name : (STATUS_NAMES[statusCode] ?? 'Error'),
     message: error.message || 'An unexpected error occurred.',
     statusCode,
     timestamp: new Date().toISOString(),

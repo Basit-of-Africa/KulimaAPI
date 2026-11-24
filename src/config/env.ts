@@ -9,6 +9,21 @@ export const env = {
   host: process.env.HOST || '0.0.0.0',
   logLevel: process.env.LOG_LEVEL || 'info',
 
+  /**
+   * Keep serving from in-memory stores when Postgres is down. Development
+   * convenience only: always off in production, where the API returns 503.
+   * Set ALLOW_MEMORY_FALLBACK=false to test production behaviour locally.
+   */
+  allowMemoryFallback:
+    (process.env.NODE_ENV || 'development') !== 'production' &&
+    process.env.ALLOW_MEMORY_FALLBACK !== 'false',
+
+  /**
+   * Number of API servers running. Used when Redis is down so per-server
+   * rate-limit counters add up to the customer's limit instead of N times it.
+   */
+  instanceCount: Math.max(1, parseInt(process.env.INSTANCE_COUNT || '1', 10) || 1),
+
   database: {
     url: process.env.DATABASE_URL || 'postgresql://kulima:kulima_secret@localhost:5432/kulima_db',
   },
@@ -41,6 +56,7 @@ export const env = {
   },
 
   cache: {
+    memoryMaxEntries: Math.max(100, parseInt(process.env.MEMORY_CACHE_MAX_ENTRIES || '5000', 10) || 5000),
     ttlCurrentWeather: parseInt(process.env.CACHE_TTL_CURRENT_WEATHER || '900', 10),
     ttlForecast: parseInt(process.env.CACHE_TTL_FORECAST || '3600', 10),
     ttlHistorical: parseInt(process.env.CACHE_TTL_HISTORICAL || '86400', 10),

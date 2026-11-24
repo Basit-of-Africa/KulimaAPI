@@ -7,7 +7,8 @@ import swaggerUi from '@fastify/swagger-ui';
 import { env } from './config/env.js';
 import { logger, createChildLogger } from './logger.js';
 import { testDatabaseConnection, closeDatabaseConnection } from './database/connection.js';
-import { closeRedis } from './cache/redis.js';
+import { closeRedis, getRedisClient } from './cache/redis.js';
+import { getDbStatus, markDbDown, markDbUp } from './database/availability.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { perKeyRateLimit } from './middleware/rateLimit.js';
 import authRoutes from './routes/auth.js';
@@ -115,6 +116,12 @@ await app.register(swaggerUi, {
   },
 });
 
+// ─── Error Handlers ────────────────────────────────────────────────────────
+// Must be set BEFORE routes are registered: each awaited plugin captures the
+// error handler in effect when it loads.
+app.setErrorHandler(errorHandler);
+app.setNotFoundHandler(notFoundHandler);
+
 // ─── Register Routes ────────────────────────────────────────────────────────
 await app.register(authRoutes);
 await app.register(intelligenceRoutes);
@@ -128,10 +135,6 @@ await app.register(farmsV2Routes);
 await app.register(platformRoutes);
 await app.register(environmentRoutes);
 await app.register(advisorRoutes);
-
-// ─── Error Handlers ────────────────────────────────────────────────────────
-app.setErrorHandler(errorHandler);
-app.setNotFoundHandler(notFoundHandler);
 
 // ─── Health Endpoints ────────────────────────────────────────────────────────
 app.get('/health', {
@@ -165,11 +168,18 @@ app.get('/health/providers', {
   },
   handler: async () => {
     const dbOk = await testDatabaseConnection();
+    if (dbOk) markDbUp();
+    else markDbDown('health check failed');
     const weatherProvider = getWeatherProvider();
     const geoProvider = getGeoProvider();
+    const redisOk = getRedisClient()?.status === 'ready';
 
     return {
+      status: dbOk && redisOk ? 'ok' : 'degraded',
       database: dbOk ? 'connected' : 'disconnected',
+      redis: redisOk ? 'connected' : 'disconnected',
+      // memoryFallbackAllowed is false in production: there a database outage returns 503s.
+      fallback: getDbStatus(),
       weather: weatherProvider.isAvailable() ? 'operational' : 'degraded',
       geo: geoProvider.isAvailable() ? 'operational' : 'degraded',
       timestamp: new Date().toISOString(),

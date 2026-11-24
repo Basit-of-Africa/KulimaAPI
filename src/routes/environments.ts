@@ -11,7 +11,7 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { authenticateApiKey, optionalAuth } from '../middleware/auth.js';
+import { authenticateApiKey } from '../middleware/auth.js';
 import { trackUsage } from '../middleware/usage.js';
 import { db, environments, environmentCrops, environmentReadings, controlActions, nutrientSchedules } from '../database/index.js';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
@@ -20,23 +20,84 @@ import { evaluateCEARules, generateControlSetpoints, calculateEnergyBudget, pred
 import type { CEARuleContext, EnvironmentProfile, EnvironmentReading as CEAReading } from '../intelligence/ceaTypes.js';
 import { ENERGY_RATES } from '../intelligence/ceaTypes.js';
 import { createChildLogger } from '../logger.js';
+import {
+  isDbAvailable,
+  isDbConnectionError,
+  isMemoryFallbackAllowed,
+  markDbDown,
+  markDbUp,
+  DbUnavailableError,
+} from '../database/availability.js';
 
 const log = createChildLogger('routes/environments');
 
-// ─── In-memory store (MVP fallback when DB is unavailable) ──────────────────
+// ─── In-memory store (development fallback only) ────────────────────────────
+//
+// Used only when ALLOW_MEMORY_FALLBACK is on (never in production). The
+// database is always the source of truth; nothing here is shared between
+// servers or survives a restart.
 
 const memStore = new Map<string, any>();
-let dbAvailable = true;
 
+/**
+ * Run a DB query. If it fails: in development return `fallback`; in
+ * production rethrow so the error handler returns 503 (connection problems)
+ * or 500 (anything else) instead of silently returning made-up data.
+ */
 async function tryDb<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
-  if (!dbAvailable) return fallback;
+  if (!isDbAvailable()) {
+    if (isMemoryFallbackAllowed()) return fallback;
+    throw new DbUnavailableError();
+  }
   try {
-    return await fn();
+    const result = await fn();
+    markDbUp();
+    return result;
   } catch (err) {
-    log.warn({ err }, 'DB unavailable, using in-memory fallback');
-    dbAvailable = false;
+    if (isDbConnectionError(err)) markDbDown(err);
+    if (!isMemoryFallbackAllowed()) throw err;
+    log.warn({ err }, 'DB query failed, using in-memory fallback (development only)');
     return fallback;
   }
+}
+
+function remember(id: string, record: any): void {
+  if (isMemoryFallbackAllowed()) memStore.set(id, record);
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Load an environment only if it belongs to `orgId`. Returns null (→ 404)
+ * for unknown ids and for environments owned by another organisation, so
+ * callers can't probe for other organisations' data.
+ */
+async function loadOwnedEnvironment(id: string, orgId: string): Promise<any | null> {
+  if (!UUID_RE.test(id)) return null;
+
+  if (isMemoryFallbackAllowed()) {
+    const mem = memStore.get(id);
+    if (mem) return mem.orgId === orgId ? mem : null;
+  }
+
+  const rows = await tryDb(
+    () => db.select().from(environments)
+      .where(and(eq(environments.id, id), eq(environments.orgId, orgId)))
+      .limit(1),
+    [] as any[],
+  );
+  const row = rows[0];
+  if (!row) return null;
+
+  const crops = await tryDb(
+    () => db.select().from(environmentCrops).where(eq(environmentCrops.environmentId, id)),
+    [] as any[],
+  );
+  return { ...row, crops };
+}
+
+function notFound(reply: FastifyReply, id: string) {
+  return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
 }
 
 // ─── Routes ────────────────────────────────────────────────────────────────
@@ -150,11 +211,10 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
       // Also store in memory for quick access
       const createdAt = dbEnvRecord?.createdAt instanceof Date ? dbEnvRecord.createdAt.toISOString() : now.toISOString();
-      memStore.set(envId, { ...envRecord, crops: cropRecords, createdAt, updatedAt: createdAt });
+      remember(envId, { ...envRecord, crops: cropRecords, createdAt, updatedAt: createdAt });
 
       log.info({ envId, name, type }, 'CEA environment created');
 
-      const memEnv = memStore.get(envId);
       return reply.code(201).send({
         id: envId,
         name,
@@ -170,26 +230,25 @@ export default async function environmentRoutes(app: FastifyInstance) {
           growthStage: c.growthStage,
         })),
         status: 'active',
-        createdAt: memEnv?.createdAt || now.toISOString(),
+        createdAt,
       });
     },
   });
 
   // ─── GET /v2/environments — List all environments ─────────────────────
   app.get('/v2/environments', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
-      const orgId = request.apiKey?.orgId;
+      const orgId = request.apiKey!.orgId;
 
-      let rows = await tryDb(
-        () => orgId ? db.select().from(environments).where(eq(environments.orgId, orgId)) : Promise.resolve([]),
+      let rows: any[] = await tryDb(
+        () => db.select().from(environments).where(eq(environments.orgId, orgId)),
         [],
       );
 
-      // Merge with memory store for environments created in this session
-      if (rows.length === 0) {
-        const all = Array.from(memStore.values());
-        rows = orgId ? all.filter((e: any) => e.orgId === orgId) : all;
+      // Development fallback: environments created in memory during this session
+      if (rows.length === 0 && isMemoryFallbackAllowed()) {
+        rows = Array.from(memStore.values()).filter((e: any) => e.orgId === orgId);
       }
 
       return {
@@ -209,33 +268,14 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id — Get environment details ──────────────
   app.get('/v2/environments/:id', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
-      let env = memStore.get(id);
-      if (!env) {
-        const rows = await tryDb(
-          () => db.select().from(environments).where(eq(environments.id, id)),
-          [],
-        );
-        env = rows[0];
-      }
+      const env = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!env) return notFound(reply, id);
 
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
-
-      // Fetch crops
-      const crops = await tryDb(
-        () => db.select().from(environmentCrops).where(eq(environmentCrops.environmentId, id)),
-        memStore.get(id)?.crops || [],
-      );
-
-      return {
-        ...env,
-        crops,
-      };
+      return env;
     },
   });
 
@@ -246,18 +286,9 @@ export default async function environmentRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       const body = request.body as any;
 
-      let env = memStore.get(id);
-      if (!env) {
-        const rows = await tryDb(
-          () => db.select().from(environments).where(eq(environments.id, id)),
-          [],
-        );
-        env = rows[0];
-      }
-
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
+      const orgId = request.apiKey!.orgId;
+      const env = await loadOwnedEnvironment(id, orgId);
+      if (!env) return notFound(reply, id);
 
       const updates: Record<string, any> = {};
       if (body.name) updates.name = body.name;
@@ -268,11 +299,11 @@ export default async function environmentRoutes(app: FastifyInstance) {
       updates.updatedAt = new Date().toISOString();
 
       await tryDb(
-        () => db.update(environments).set(updates).where(eq(environments.id, id)),
+        () => db.update(environments).set(updates).where(and(eq(environments.id, id), eq(environments.orgId, orgId))),
         null,
       );
 
-      memStore.set(id, { ...env, ...updates });
+      remember(id, { ...env, ...updates });
 
       return { id, ...updates };
     },
@@ -283,9 +314,13 @@ export default async function environmentRoutes(app: FastifyInstance) {
     preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
+      const orgId = request.apiKey!.orgId;
+
+      const env = await loadOwnedEnvironment(id, orgId);
+      if (!env) return notFound(reply, id);
 
       await tryDb(
-        () => db.delete(environments).where(eq(environments.id, id)),
+        () => db.delete(environments).where(and(eq(environments.id, id), eq(environments.orgId, orgId))),
         null,
       );
 
@@ -306,10 +341,8 @@ export default async function environmentRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       const body = request.body as any;
 
-      const env = memStore.get(id);
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
+      const env = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!env) return notFound(reply, id);
 
       // Support both single and batch
       const readings = Array.isArray(body.readings) ? body.readings : [body];
@@ -360,6 +393,9 @@ export default async function environmentRoutes(app: FastifyInstance) {
       const query = request.query as any;
       const { from, to, limit = 100 } = query;
 
+      const owned = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!owned) return notFound(reply, id);
+
       const conditions = [eq(environmentReadings.environmentId, id)];
       if (from) conditions.push(gte(environmentReadings.timestamp, new Date(from)));
       if (to) conditions.push(lte(environmentReadings.timestamp, new Date(to)));
@@ -397,10 +433,8 @@ export default async function environmentRoutes(app: FastifyInstance) {
         });
       }
 
-      const env = memStore.get(id);
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
+      const env = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!env) return notFound(reply, id);
 
       const inserted = await tryDb(
         async () => {
@@ -445,14 +479,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── POST /v2/environments/:id/intelligence — Full CEA intelligence ──
   app.post('/v2/environments/:id/intelligence', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
-      const env = memStore.get(id);
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
+      const env = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!env) return notFound(reply, id);
 
       // Fetch latest reading
       const latestReadings = await tryDb(
@@ -575,14 +607,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/control-setpoints — Recommended settings ─
   app.get('/v2/environments/:id/control-setpoints', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
-      const env = memStore.get(id);
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
+      const env = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!env) return notFound(reply, id);
 
       const latestReadings = await tryDb(
         () => db
@@ -613,14 +643,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/energy-budget — Energy cost forecast ───
   app.get('/v2/environments/:id/energy-budget', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
-      const env = memStore.get(id);
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
+      const env = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!env) return notFound(reply, id);
 
       let outdoorWeather;
       try {
@@ -647,14 +675,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/yield-forecast — Expected yield ────────
   app.get('/v2/environments/:id/yield-forecast', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
-      const env = memStore.get(id);
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
+      const env = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!env) return notFound(reply, id);
 
       const latestReadings = await tryDb(
         () => db
@@ -694,7 +720,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
       const results = await Promise.allSettled(
         body.environmentIds.map(async (envId) => {
-          const env = memStore.get(envId);
+          const env = await loadOwnedEnvironment(envId, request.apiKey!.orgId);
           if (!env) return { environmentId: envId, error: 'Not found' };
 
           const latestReadings = await tryDb(
@@ -743,6 +769,9 @@ export default async function environmentRoutes(app: FastifyInstance) {
     preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
+
+      const owned = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!owned) return notFound(reply, id);
       const body = request.body as any;
 
       if (!body.controlType || !body.action) {
@@ -775,9 +804,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/control-log — Historical control actions ─
   app.get('/v2/environments/:id/control-log', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
+
+      const owned = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!owned) return notFound(reply, id);
       const query = request.query as any;
       const { limit = 50 } = query;
 
@@ -801,9 +833,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/nutrients — Current nutrient schedule ──
   app.get('/v2/environments/:id/nutrients', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
+
+      const owned = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!owned) return notFound(reply, id);
 
       const rows = await tryDb(
         () => db
@@ -831,6 +866,9 @@ export default async function environmentRoutes(app: FastifyInstance) {
     preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
+
+      const owned = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!owned) return notFound(reply, id);
       const body = request.body as any;
 
       if (!body.cropName || !body.solution) {
@@ -862,14 +900,12 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/:id/analytics — Performance analytics ─────
   app.get('/v2/environments/:id/analytics', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
 
-      const env = memStore.get(id);
-      if (!env) {
-        return reply.code(404).send({ error: 'Not Found', message: `Environment "${id}" not found.` });
-      }
+      const env = await loadOwnedEnvironment(id, request.apiKey!.orgId);
+      if (!env) return notFound(reply, id);
 
       // Get all readings for analytics
       const readings = await tryDb(
@@ -931,7 +967,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
   // ─── GET /v2/environments/comparison — Compare multiple facilities ────
   app.get('/v2/environments/comparison', {
-    preHandler: [optionalAuth, trackUsage],
+    preHandler: [authenticateApiKey, trackUsage],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const key = request.apiKey!;
       const query = request.query as any;
@@ -946,7 +982,7 @@ export default async function environmentRoutes(app: FastifyInstance) {
 
       const comparisons = await Promise.all(
         ids.map(async (envId: string) => {
-          const env = memStore.get(envId);
+          const env = await loadOwnedEnvironment(envId, request.apiKey!.orgId);
           if (!env) return { environmentId: envId, error: 'Not found' };
 
           const latestReadings = await tryDb(

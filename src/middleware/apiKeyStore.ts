@@ -1,7 +1,9 @@
 /**
  * Shared In-Memory API Key Store
  *
- * Used as a fallback when PostgreSQL is unavailable.
+ * Used as a fallback when PostgreSQL is unavailable — development only.
+ * In production (see database/availability.ts) nothing is read from or
+ * written to this store.
  * Both the auth routes (creation) and auth middleware (validation)
  * reference this store.
  */
@@ -22,47 +24,35 @@ export interface StoredApiKey {
   createdAt: string;
 }
 
-const store = new Map<string, StoredApiKey>();
-let dbAvailable = true;
-
-export function getDbAvailable(): boolean {
-  return dbAvailable;
-}
-
-export function setDbAvailable(available: boolean): void {
-  dbAvailable = available;
-}
+// Indexed by id and by the full SHA-256 hash of the key. Lookups for
+// authentication go by hash, so a key is only accepted if it matches exactly.
+const byId = new Map<string, StoredApiKey>();
+const byHash = new Map<string, StoredApiKey>();
 
 export function storeApiKey(key: StoredApiKey): void {
-  store.set(key.id, key);
-  // Also index by prefix for fast lookup
-  store.set(key.keyPrefix, key);
+  byId.set(key.id, key);
+  byHash.set(key.keyHash, key);
   log.info({ keyId: key.id, keyPrefix: key.keyPrefix }, 'API key stored in-memory');
 }
 
-export function lookupByKeyPrefix(keyPrefix: string): StoredApiKey | undefined {
-  return store.get(keyPrefix);
+export function lookupByKeyHash(keyHash: string): StoredApiKey | undefined {
+  return byHash.get(keyHash);
 }
 
 export function getAllKeys(): StoredApiKey[] {
-  const seen = new Set<string>();
-  const keys: StoredApiKey[] = [];
-  for (const [_, key] of store) {
-    if (!seen.has(key.id)) {
-      seen.add(key.id);
-      keys.push(key);
-    }
-  }
-  return keys;
+  return Array.from(byId.values());
 }
 
 export function deleteKey(keyId: string): boolean {
-  // Find and delete by id
-  const key = store.get(keyId);
-  if (key) {
-    store.delete(key.id);
-    store.delete(key.keyPrefix);
-    return true;
-  }
-  return false;
+  const key = byId.get(keyId);
+  if (!key) return false;
+  byId.delete(key.id);
+  byHash.delete(key.keyHash);
+  return true;
+}
+
+/** For tests only. */
+export function _clearApiKeyStoreForTests(): void {
+  byId.clear();
+  byHash.clear();
 }

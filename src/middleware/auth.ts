@@ -3,7 +3,14 @@ import crypto from 'crypto';
 import { db, apiKeys, organisations } from '../database/index.js';
 import { eq, and, gt, sql } from 'drizzle-orm';
 import { createChildLogger } from '../logger.js';
-import { lookupByKeyPrefix, setDbAvailable, getDbAvailable } from './apiKeyStore.js';
+import { lookupByKeyHash } from './apiKeyStore.js';
+import {
+  isDbAvailable,
+  isMemoryFallbackAllowed,
+  markDbDown,
+  markDbUp,
+  RETRY_AFTER_SECONDS,
+} from '../database/availability.js';
 
 const log = createChildLogger('auth');
 
@@ -59,6 +66,11 @@ export async function authenticateApiKey(
   const keyPrefix = rawKey.slice(0, 12);
   const computedHash = crypto.createHash('sha256').update(rawKey).digest('hex');
 
+  // Circuit open (DB failed moments ago): skip straight to the fallback / 503.
+  if (!isDbAvailable()) {
+    return authenticateFromFallback(request, reply, computedHash);
+  }
+
   try {
     const rows = await db
       .select({
@@ -74,6 +86,7 @@ export async function authenticateApiKey(
       .from(apiKeys)
       .where(eq(apiKeys.keyPrefix, keyPrefix))
       .limit(1);
+    markDbUp();
 
     if (rows.length === 0) {
       log.warn({ keyPrefix }, 'API key not found');
@@ -124,9 +137,23 @@ export async function authenticateApiKey(
       monthlyQuota: key.monthlyQuota,
     };
   } catch (err) {
-    // DB unavailable — try in-memory fallback (prefix match only — acceptable for dev)
-    setDbAvailable(false);
-    const memKey = lookupByKeyPrefix(keyPrefix);
+    markDbDown(err);
+    return authenticateFromFallback(request, reply, computedHash);
+  }
+}
+
+/**
+ * Used when the database can't be reached. In production this always returns
+ * 503 — keys are never accepted without checking them against the database.
+ * In development, keys created in-memory are accepted on an exact hash match.
+ */
+function authenticateFromFallback(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  computedHash: string,
+): FastifyReply | void {
+  if (isMemoryFallbackAllowed()) {
+    const memKey = lookupByKeyHash(computedHash);
     if (memKey && memKey.status === 'active') {
       request.apiKey = {
         id: memKey.id,
@@ -138,12 +165,15 @@ export async function authenticateApiKey(
       };
       return;
     }
-    log.error(err, 'Auth middleware error');
-    return reply.code(500).send({
-      error: 'Internal Error',
-      message: 'Authentication service unavailable.',
-    });
   }
+
+  return reply
+    .code(503)
+    .header('Retry-After', String(RETRY_AFTER_SECONDS))
+    .send({
+      error: 'Service Unavailable',
+      message: 'Authentication is temporarily unavailable. Please retry shortly.',
+    });
 }
 
 /**

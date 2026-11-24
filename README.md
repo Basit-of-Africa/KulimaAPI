@@ -149,6 +149,13 @@ curl -X POST http://localhost:3000/v1/auth/keys \
 
 Rate limits and monthly quotas come from your organisation's plan and can't be set in the request. Unauthenticated sign-ups are limited per IP (`SIGNUP_RATE_LIMIT_PER_HOUR`, default 10). Keys can only be listed, revoked or rotated by keys from the same organisation.
 
+### When Postgres or Redis is down
+
+- **Production (`NODE_ENV=production`)**: requests that need the database return **`503 Service Unavailable`** with a `Retry-After` header. Nothing is stored in memory and no key is accepted without being checked against the database. After a failure the database is retried every 10 seconds, and the API recovers by itself.
+- **Development**: by default the API keeps working from in-memory stores so you can run it without Docker. Set `ALLOW_MEMORY_FALLBACK=false` to try production behaviour locally.
+- **Redis down**: the cache falls back to a bounded per-server memory cache (`MEMORY_CACHE_MAX_ENTRIES`). Rate limits fall back to per-server counters, each enforcing `1/INSTANCE_COUNT` of a key's limit, so set `INSTANCE_COUNT` to the number of API servers.
+- `GET /health/providers` reports `status: degraded`, database and Redis connectivity, and the fallback state.
+
 ---
 
 ## 🔌 Endpoints

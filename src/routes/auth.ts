@@ -3,7 +3,14 @@ import { db, apiKeys, organisations } from '../database/index.js';
 import { eq, sql, and, gte } from 'drizzle-orm';
 import { revokeApiKey, rotateApiKey } from '../middleware/apiKeyManager.js';
 import { authenticateApiKey } from '../middleware/auth.js';
-import { storeApiKey, lookupByKeyPrefix, getAllKeys, deleteKey, setDbAvailable, getDbAvailable } from '../middleware/apiKeyStore.js';
+import { storeApiKey, getAllKeys } from '../middleware/apiKeyStore.js';
+import {
+  isDbAvailable,
+  isMemoryFallbackAllowed,
+  markDbDown,
+  markDbUp,
+  DbUnavailableError,
+} from '../database/availability.js';
 import { createChildLogger } from '../logger.js';
 import { env as config } from '../config/index.js';
 import crypto from 'crypto';
@@ -17,10 +24,6 @@ function generateKey(): { rawKey: string; keyPrefix: string; keyHash: string } {
   const keyPrefix = rawKey.slice(0, 12);
   const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
   return { rawKey, keyPrefix, keyHash };
-}
-
-function isDbAvailable(): boolean {
-  return getDbAvailable();
 }
 
 /**
@@ -131,6 +134,7 @@ export default async function authRoutes(app: FastifyInstance) {
           const { createApiKey: createDbKey } = await import('../middleware/apiKeyManager.js');
           const key = await createDbKey(orgId, name, limitsForPlan(plan, orgQuota));
 
+          markDbUp();
           log.info({ keyId: key.id, orgId }, 'API key created via DB');
 
           return reply.code(201).send({
@@ -145,12 +149,15 @@ export default async function authRoutes(app: FastifyInstance) {
             _warning: 'Save this key now. It will not be shown again.',
           });
         } catch (err: any) {
-          log.error({ err: err.message }, 'DB key creation failed, falling back to in-memory');
-          setDbAvailable(false);
+          log.error({ err: err.message }, 'DB key creation failed');
+          markDbDown(err);
         }
       }
 
-      // In-memory fallback — same ownership rules: the caller's org, or a fresh one.
+      // Production: never hand out a key that only lives in this server's memory.
+      if (!isMemoryFallbackAllowed()) throw new DbUnavailableError();
+
+      // In-memory fallback (development only) — same ownership rules: the caller's org, or a fresh one.
       const { rawKey, keyPrefix, keyHash } = generateKey();
       const id = crypto.randomUUID();
       const orgId = caller?.orgId ?? crypto.randomUUID();
@@ -197,6 +204,7 @@ export default async function authRoutes(app: FastifyInstance) {
       const orgId = key.orgId;
 
       let rows: any[] = [];
+      let fromDb = false;
       if (isDbAvailable()) {
         try {
           rows = await db
@@ -211,13 +219,17 @@ export default async function authRoutes(app: FastifyInstance) {
             })
             .from(apiKeys)
             .where(eq(apiKeys.orgId, orgId));
-        } catch {
-          // Fall through to in-memory
+          fromDb = true;
+          markDbUp();
+        } catch (err) {
+          markDbDown(err);
         }
       }
 
-      if (rows.length === 0) {
-        // Fallback: return keys from in-memory store
+      if (!fromDb && !isMemoryFallbackAllowed()) throw new DbUnavailableError();
+
+      if (!fromDb || (rows.length === 0 && isMemoryFallbackAllowed())) {
+        // Development fallback: return keys from the in-memory store
         rows = getAllKeys()
           .filter((k: any) => k.orgId === orgId)
           .map((k: any) => ({
