@@ -132,12 +132,22 @@ Most endpoints require an API key via the `Authorization` header:
 Authorization: Bearer kulima_xxxxxxxxxxxx
 ```
 
-Get an API key via:
+Sign up and get your first API key (this creates a new organisation; the response includes its `orgId`):
 ```bash
 curl -X POST http://localhost:3000/v1/auth/keys \
   -H "Content-Type: application/json" \
-  -d '{"orgId": "<org-uuid>", "name": "My App"}'
+  -d '{"name": "My App"}'
 ```
+
+Create more keys for your organisation by authenticating with an existing key:
+```bash
+curl -X POST http://localhost:3000/v1/auth/keys \
+  -H "Authorization: Bearer kulima_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Second key"}'
+```
+
+Rate limits and monthly quotas come from your organisation's plan and can't be set in the request. Unauthenticated sign-ups are limited per IP (`SIGNUP_RATE_LIMIT_PER_HOUR`, default 10). Keys can only be listed, revoked or rotated by keys from the same organisation.
 
 ---
 
@@ -188,7 +198,7 @@ curl -X POST http://localhost:3000/v1/auth/keys \
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| `POST` | `/v1/auth/keys` | No | Create API key |
+| `POST` | `/v1/auth/keys` | Optional | Sign up (no key) or create another key for your org (with key) |
 | `DELETE` | `/v1/auth/keys/:keyId` | Required | Revoke API key |
 | `POST` | `/v1/auth/keys/:keyId/rotate` | Required | Rotate API key |
 | `GET` | `/v1/account/usage` | Required | Usage statistics |

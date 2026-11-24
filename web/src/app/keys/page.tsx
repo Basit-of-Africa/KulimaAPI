@@ -7,7 +7,6 @@ import { api } from '@/lib/api';
 
 function Page() {
   const [keys, setKeys] = useState<any[]>([]);
-  const [orgId, setOrgId] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingKeys, setLoadingKeys] = useState(true);
@@ -38,12 +37,11 @@ function Page() {
     try {
       const newKey = await api<any>('/v1/auth/keys', {
         method: 'POST',
-        body: JSON.stringify({ orgId: orgId || undefined, name }),
+        body: JSON.stringify({ name }),
       });
       setKeys(prev => [newKey, ...prev]);
       setShowKey(newKey.key || null);
       setName('');
-      setOrgId('');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -78,11 +76,6 @@ function Page() {
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Key Name <span className="text-red-400">*</span></label>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Application"
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Organisation ID <span className="text-gray-400">(optional)</span></label>
-            <input value={orgId} onChange={(e) => setOrgId(e.target.value)} placeholder="Auto-created if empty"
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white" />
           </div>
           <div className="flex items-end">

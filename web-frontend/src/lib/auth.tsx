@@ -42,11 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const profiles = loadProfiles();
     if (profiles[email]) throw new Error('An account with this email already exists on this device.');
 
-    const orgId = crypto.randomUUID();
-    const created = await api<{ key: string }>('/v1/auth/keys', {
+    // The server always creates a new organisation on sign-up and returns its id.
+    const created = await api<{ key: string; orgId: string }>('/v1/auth/keys', {
       method: 'POST',
-      body: JSON.stringify({ orgId, name: `${name}'s Farm` }),
+      body: JSON.stringify({ name: `${name}'s Farm` }),
     });
+    const orgId = created.orgId;
 
     profiles[email] = { name, email, password, orgId, apiKey: created.key };
     saveProfiles(profiles);

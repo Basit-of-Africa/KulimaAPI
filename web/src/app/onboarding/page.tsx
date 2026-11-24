@@ -10,7 +10,7 @@ const STEPS = [
     title: 'Get an API Key',
     icon: Key,
     content: 'Every request needs an API key for authentication.',
-    code: 'curl http://localhost:3000/v1/auth/keys \\\n  -H "Content-Type: application/json" \\\n  -d \'{"orgId": "your-org-id", "name": "My App"}\'',
+    code: 'curl http://localhost:3000/v1/auth/keys \\\n  -H "Content-Type: application/json" \\\n  -d \'{"name": "My App"}\'',
     tip: 'Save the key immediately — it won\'t be shown again.',
   },
   {

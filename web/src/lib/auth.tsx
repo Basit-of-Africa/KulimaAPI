@@ -102,6 +102,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.key) {
           localStorage.setItem('kulima_api_key', data.key);
         }
+        if (data.orgId) {
+          // The server creates the organisation; keep the local record in sync with it.
+          newUser.orgId = data.orgId;
+          users[email] = newUser;
+          saveUsers(users);
+          sessionUser.orgId = data.orgId;
+          setUser({ ...sessionUser });
+          saveSession(sessionUser);
+        }
       }
     } catch {
       // API key creation is best-effort — user can create one later from the Keys page

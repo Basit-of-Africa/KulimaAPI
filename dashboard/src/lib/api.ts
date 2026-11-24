@@ -56,9 +56,10 @@ export interface ApiKey {
   createdAt: string;
 }
 
-export async function createApiKey(orgId: string, name: string) {
-  return api<ApiKey>('/v1/auth/keys', {
+/** Signs up a new organisation and returns its first key (the server assigns the org id). */
+export async function createApiKey(name: string) {
+  return api<ApiKey & { orgId: string }>('/v1/auth/keys', {
     method: 'POST',
-    body: JSON.stringify({ orgId, name }),
+    body: JSON.stringify({ name }),
   });
 }

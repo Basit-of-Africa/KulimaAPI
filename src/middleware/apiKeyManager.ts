@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { db, apiKeys, organisations } from '../database/index.js';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { createChildLogger } from '../logger.js';
 
 const log = createChildLogger('api-key-manager');
@@ -88,12 +88,15 @@ export async function createApiKey(
 
 /**
  * Revoke an API key (soft-delete by setting status to 'revoked').
+ *
+ * Only keys belonging to `orgId` can be revoked; a key from another
+ * organisation is treated as not found.
  */
-export async function revokeApiKey(keyId: string): Promise<boolean> {
+export async function revokeApiKey(keyId: string, orgId: string): Promise<boolean> {
   const [updated] = await db
     .update(apiKeys)
     .set({ status: 'revoked' })
-    .where(eq(apiKeys.id, keyId))
+    .where(and(eq(apiKeys.id, keyId), eq(apiKeys.orgId, orgId)))
     .returning({ id: apiKeys.id });
 
   if (updated) {
@@ -105,22 +108,26 @@ export async function revokeApiKey(keyId: string): Promise<boolean> {
 
 /**
  * Rotate an API key — revoke old one, create new one.
+ *
+ * Only keys belonging to `orgId` can be rotated; a key from another
+ * organisation is treated as not found.
  */
 export async function rotateApiKey(
   keyId: string,
+  orgId: string,
   newName?: string
 ): Promise<CreateApiKeyResult | null> {
-  // Look up the old key to get org and settings
+  // Look up the old key (scoped to the caller's org) to get its settings
   const [oldKey] = await db
     .select()
     .from(apiKeys)
-    .where(eq(apiKeys.id, keyId))
+    .where(and(eq(apiKeys.id, keyId), eq(apiKeys.orgId, orgId)))
     .limit(1);
 
   if (!oldKey) return null;
 
   // Revoke old
-  await revokeApiKey(keyId);
+  await revokeApiKey(keyId, orgId);
 
   // Create new
   return createApiKey(oldKey.orgId, newName || oldKey.name || 'Rotated Key', {

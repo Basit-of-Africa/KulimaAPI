@@ -4,7 +4,6 @@ import { createApiKey, type ApiKey } from '../lib/api';
 
 export default function ApiKeys() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [orgId, setOrgId] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -12,8 +11,8 @@ export default function ApiKeys() {
   const [copied, setCopied] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!orgId || !name) {
-      setError('Organisation ID and name are required.');
+    if (!name) {
+      setError('Key name is required.');
       return;
     }
 
@@ -21,7 +20,7 @@ export default function ApiKeys() {
     setError(null);
 
     try {
-      const newKey = await createApiKey(orgId, name);
+      const newKey = await createApiKey(name);
       setKeys((prev) => [newKey, ...prev]);
       setShowKey(newKey.key || null);
       setName('');
@@ -57,18 +56,6 @@ export default function ApiKeys() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Organisation ID
-            </label>
-            <input
-              type="text"
-              value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
-              placeholder="uuid-of-organisation"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-kulima-500 focus:border-kulima-500 outline-none"
-            />
-          </div>
-          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Key Name</label>
             <input
               type="text"
@@ -81,7 +68,7 @@ export default function ApiKeys() {
           <div className="flex items-end">
             <button
               onClick={handleCreate}
-              disabled={loading || !orgId || !name}
+              disabled={loading || !name}
               className="flex items-center gap-2 px-4 py-2 bg-kulima-600 text-white rounded-lg text-sm font-medium hover:bg-kulima-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Plus size={16} />
